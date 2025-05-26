@@ -1,0 +1,14 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'>
+  <style>
+    .text { font: bold 24px sans-serif; }
+    .wave { animation: wave 2s infinite; }
+    @keyframes wave {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+  </style>
+  <rect width='200' height='200' fill='#2563EB' rx='20'/>
+  <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='white' class='text'>
+    <tspan class='wave'>WF</tspan>
+  </text>
+</svg>

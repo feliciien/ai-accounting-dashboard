@@ -1,0 +1,11 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 630'>
+  <style>
+    .background { fill: #2563EB; }
+    .text { font: bold 48px sans-serif; fill: white; }
+    .subtext { font: 24px sans-serif; fill: white; }
+  </style>
+  <rect width='1200' height='630' class='background' rx='20'/>
+  <text x='50%' y='40%' text-anchor='middle' class='text'>WorkFusion</text>
+  <text x='50%' y='55%' text-anchor='middle' class='subtext'>AI-Powered Accounting Automation</text>
+  <path fill='white' d='M600 450q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm0 60q66 0 113-47t47-113q0-66-47-113t-113-47q-66 0-113 47t-47 113q0 66 47 113t113 47Z'/>
+</svg>
