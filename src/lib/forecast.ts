@@ -1,6 +1,6 @@
-import { CashflowData } from './openai';
+// CashflowData import removed as it's not used in this file
 
-interface ForecastData {
+export interface ForecastData {
   name: string;
   income: number;
   expense: number;

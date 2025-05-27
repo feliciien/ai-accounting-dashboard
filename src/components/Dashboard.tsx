@@ -1,5 +1,4 @@
 import React, { useRef } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import FileUpload from './FileUpload';
 import AiRecommendations from './AiRecommendations';
 import { useFinancial } from '../context/FinancialContext';
@@ -18,6 +17,7 @@ import Testimonials from './Testimonials';
 import OnboardingChecklist from './onboarding/OnboardingChecklist';
 import { conversionTracking, TrialInfo } from '../services/ConversionTrackingService';
 import { trackEvent } from '../utils/analytics';
+import CashFlowForecast from './CashFlowForecast';
 import SubscriptionBanner from './SubscriptionBanner';
 import SubscriptionCTA from './SubscriptionCTA';
 
@@ -65,20 +65,13 @@ const Dashboard: React.FC = () => {
       user_type: currentUser ? 'registered' : 'anonymous'
     });
   };
-  interface ForecastData {
-    name: string;
-    income: number;
-    expense: number;
-    predicted?: boolean;
-  }
+  // ForecastData interface removed - using the one from forecast.ts
 
-  const [forecastData, setForecastData] = React.useState<ForecastData[]>([]);
   const [alerts, setAlerts] = React.useState<AnomalyAlert[]>([]);
 
   React.useEffect(() => {
     if (chartData.length > 0) {
       const forecast = generateForecast(chartData);
-      setForecastData(forecast);
       
       // Detect anomalies when data changes
       const anomalies = detectAnomalies(rawData, forecast);
@@ -307,7 +300,7 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
                     <svg className="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
                   </div>
                   <div className="ml-3">
@@ -408,93 +401,8 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
             {/* AI Recommendations - Premium Feature Teaser */}
             <AiRecommendations className="mb-6" />
 
-            {/* Cash Flow Chart */}
-            <div className="bg-white rounded-xl shadow-card p-4 md:p-6 border border-gray-100">
-              <h2 className="text-xl font-semibold mb-4 text-gray-900">Cash Flow with 3-Month Forecast</h2>
-              <div className="h-[300px] sm:h-[350px] md:h-[400px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={forecastData}>
-                    <defs>
-                      <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#22c55e" stopOpacity={0.1}/>
-                        <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
-                      </linearGradient>
-                      <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.1}/>
-                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                    <XAxis 
-                      dataKey="name" 
-                      tick={{ fill: '#6b7280' }}
-                      axisLine={{ stroke: '#e5e7eb' }}
-                      tickLine={{ stroke: '#e5e7eb' }}
-                    />
-                    <YAxis 
-                      tick={{ fill: '#6b7280' }}
-                      axisLine={{ stroke: '#e5e7eb' }}
-                      tickLine={{ stroke: '#e5e7eb' }}
-                      tickFormatter={(value) => `$${value.toLocaleString()}`}
-                    />
-                    <Tooltip
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          const data = payload[0].payload;
-                          return (
-                            <div className="bg-white p-4 border rounded-lg shadow-lg">
-                              <p className="font-semibold text-gray-900 mb-2">
-                                {data.name} {data.predicted ? '(Forecast)' : ''}
-                              </p>
-                              <div className="space-y-1">
-                                <p className="text-success-600 flex justify-between">
-                                  <span>Income:</span>
-                                  <span className="font-medium ml-4">${data.income.toLocaleString()}</span>
-                                </p>
-                                <p className="text-danger-600 flex justify-between">
-                                  <span>Expense:</span>
-                                  <span className="font-medium ml-4">${data.expense.toLocaleString()}</span>
-                                </p>
-                                <div className="border-t border-gray-100 mt-2 pt-2">
-                                  <p className="text-primary-600 flex justify-between font-medium">
-                                    <span>Net:</span>
-                                    <span>${(data.income - data.expense).toLocaleString()}</span>
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        }
-                        return null;
-                      }}
-                    />
-                    <Legend />
-                    <Line 
-                      type="monotone" 
-                      dataKey="income" 
-                      stroke="#22c55e" 
-                      strokeWidth={2}
-                      dot={{ r: 4, strokeWidth: 2 }}
-                      activeDot={{ r: 6, strokeWidth: 2 }}
-                      strokeDasharray={forecastData.some(d => d.predicted) ? '5 5' : undefined}
-                      fill="url(#incomeGradient)"
-                      animationDuration={1000}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="expense" 
-                      stroke="#ef4444" 
-                      strokeWidth={2}
-                      dot={{ r: 4, strokeWidth: 2 }}
-                      activeDot={{ r: 6, strokeWidth: 2 }}
-                      strokeDasharray={forecastData.some(d => d.predicted) ? '5 5' : undefined}
-                      fill="url(#expenseGradient)"
-                      animationDuration={1000}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+            {/* Enhanced Cash Flow Chart */}
+            <CashFlowForecast />
 
             {/* File Upload Section */}
             <div id="file-upload" className="bg-white rounded-xl shadow-card p-4 md:p-6 border border-gray-100">
