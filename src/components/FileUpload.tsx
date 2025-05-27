@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
 import * as pdfjs from 'pdfjs-dist';
 import { useFinancial } from '../context/FinancialContext';
 import { useAuth } from '../context/AuthContext';
@@ -31,6 +31,11 @@ interface FinancialRecord {
   account?: string;
   currency?: string;
   tags?: string[];
+  metadata?: {
+    statementType?: 'balance_sheet' | 'income_statement' | 'cash_flow' | 'other';
+    section?: string;
+    rawText?: string;
+  };
 }
 
 // Removed unused extractTags function
@@ -107,6 +112,258 @@ const FileUpload: React.FC = () => {
             }
           };
           reader.onerror = () => reject(new Error('Failed to read Excel file'));
+          reader.readAsArrayBuffer(file);
+        });
+      } else if (fileType === 'pdf') {
+        // Process PDF file
+        const reader = new FileReader();
+        return new Promise((resolve, reject) => {
+          reader.onload = async (e) => {
+            try {
+              const data = new Uint8Array(e.target?.result as ArrayBuffer);
+              const loadingTask = pdfjs.getDocument(data);
+              const pdf = await loadingTask.promise;
+              
+              let extractedText = '';
+              const maxPages = pdf.numPages;
+              
+              // Extract text from each page
+              for (let i = 1; i <= maxPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map((item: any) => item.str).join(' ');
+                extractedText += pageText + '\n';
+              }
+              
+              // Try to extract financial data from the text
+              // This is a simplified approach - in a real app, you'd use more sophisticated parsing
+              const lines = extractedText.split('\n').filter(line => line.trim().length > 0);
+              const parsedData: FinancialRecord[] = [];
+              
+              // Enhanced parsing for financial statements (Balance Sheets, Income Statements)
+              // Look for financial statement headers
+              const isFinancialStatement = lines.some(line => 
+                /balance sheet|income statement|financial statement|profit.+loss|cash flow/i.test(line));
+              
+              if (isFinancialStatement) {
+                // Process as a financial statement
+                let statementDate = new Date();
+                
+                // 1. IMPROVEMENT: Extract statement date from document
+                const dateLineRegex = /(?:as of|period ending|fiscal year|year ended|dated)\s*:?\s*(\w+\s+\d{1,2}\s*,?\s*\d{4}|\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{4}[/-]\d{1,2}[/-]\d{1,2})/i;
+                const dateRangeRegex = /(\w+\s+\d{1,2}\s*,?\s*\d{4}|\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{4}[/-]\d{1,2}[/-]\d{1,2})\s*(?:to|-|through)\s*(\w+\s+\d{1,2}\s*,?\s*\d{4}|\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{4}[/-]\d{1,2}[/-]\d{1,2})/i;
+                
+                // Look for date information in the first 20 lines (headers usually at the top)
+                for (let i = 0; i < Math.min(20, lines.length); i++) {
+                  const line = lines[i];
+                  
+                  // Check for date range (e.g., "January 1, 2024 - December 31, 2024")
+                  const dateRangeMatch = line.match(dateRangeRegex);
+                  if (dateRangeMatch) {
+                    try {
+                      // Use the end date of the range
+                      const endDateStr = dateRangeMatch[2];
+                      const parsedDate = parse(endDateStr, 'MMMM d, yyyy', new Date());
+                      if (!isNaN(parsedDate.getTime())) {
+                        statementDate = parsedDate;
+                        break;
+                      }
+                    } catch (e) {
+                      // If parsing fails, continue with default date
+                      console.log('Failed to parse date range:', e);
+                    }
+                  }
+                  
+                  // Check for single date (e.g., "As of December 31, 2024")
+                  const dateLineMatch = line.match(dateLineRegex);
+                  if (dateLineMatch) {
+                    try {
+                      const dateStr = dateLineMatch[1];
+                      const parsedDate = parse(dateStr, 'MMMM d, yyyy', new Date());
+                      if (!isNaN(parsedDate.getTime())) {
+                        statementDate = parsedDate;
+                        break;
+                      }
+                    } catch (e) {
+                      // If parsing fails, continue with default date
+                      console.log('Failed to parse date:', e);
+                    }
+                  }
+                }
+                
+                const formattedDate = format(statementDate, 'yyyy-MM-dd');
+                
+                // 2. IMPROVEMENT: Support for multi-column layouts
+                // Look for patterns like "Item Name Amount" or "Item Name: Amount"
+                // More flexible pattern to handle various formats
+                const statementPattern = /([A-Za-z\s&'\-.,()]+)\s*:?\s*([$€£¥]?\s*[\d,.]+(?:\s*[kKmMbBtT])?|\([$€£¥]?\s*[\d,.]+(?:\s*[kKmMbBtT])?\))\b/;
+                const currencySymbolPattern = /[$€£¥]/;
+                const magnitudePattern = /([\d,.]+)\s*([kKmMbBtT])\b/;
+                
+                // Determine statement type for categorization
+                const isBalanceSheet = lines.some(line => /balance sheet|assets|liabilities|equity/i.test(line));
+                const isIncomeStatement = lines.some(line => /income statement|revenue|profit|loss|expenses/i.test(line));
+                const isCashFlow = lines.some(line => /cash flow|operating activities|investing activities|financing activities/i.test(line));
+                
+                // Track current section to improve categorization
+                let currentSection = '';
+                
+                for (const line of lines) {
+                  // Update current section when section headers are found
+                  if (/^\s*(assets|current assets|non-current assets|fixed assets|liabilities|equity|revenue|expenses|income|operating activities|investing activities|financing activities)\s*$/i.test(line)) {
+                    currentSection = line.trim().toLowerCase();
+                    continue;
+                  }
+                  
+                  // Skip header lines and total lines
+                  if (/^\s*(total|subtotal|balance sheet|income statement|statement|report|notes|fiscal year)/i.test(line)) {
+                    continue;
+                  }
+                  
+                  // Match item-amount pairs
+                  const matches = line.match(statementPattern);
+                  if (matches) {
+                    const [, itemName, amountWithCurrency] = matches;
+                    
+                    // Clean up the amount string
+                    let amountStr = amountWithCurrency.replace(currencySymbolPattern, '').trim();
+                    
+                    // Handle parentheses for negative numbers (common in accounting)
+                    const isNegative = amountStr.includes('(') && amountStr.includes(')');
+                    if (isNegative) {
+                      amountStr = amountStr.replace(/[()]/g, '').trim();
+                    }
+                    
+                    // Handle magnitude indicators (K, M, B, T)
+                    const magnitudeMatch = amountStr.match(magnitudePattern);
+                    let multiplier = 1;
+                    if (magnitudeMatch) {
+                      const [, num, magnitude] = magnitudeMatch;
+                      amountStr = num;
+                      
+                      switch(magnitude.toUpperCase()) {
+                        case 'K': multiplier = 1000; break;
+                        case 'M': multiplier = 1000000; break;
+                        case 'B': multiplier = 1000000000; break;
+                        case 'T': multiplier = 1000000000000; break;
+                      }
+                    }
+                    
+                    let amount = normalizeAmount(amountStr) * multiplier * (isNegative ? -1 : 1);
+                    
+                    if (!isNaN(amount)) {
+                      // Determine category and type based on context
+                      let category = itemName.trim();
+                      let type: 'income' | 'expense' = 'income';
+                      
+                      // Use current section to improve categorization
+                      const sectionContext = currentSection || 
+                        (isBalanceSheet ? 'balance sheet' : 
+                         isIncomeStatement ? 'income statement' : 
+                         isCashFlow ? 'cash flow' : 'financial statement');
+                      
+                      // Categorize based on statement type and item name
+                      if (isBalanceSheet) {
+                        if (/assets|receivable|inventory|cash|equipment|property|prepaid/i.test(category) || 
+                            /assets|receivable|inventory|cash|equipment|property|prepaid/i.test(sectionContext)) {
+                          type = 'income'; // Assets are positive
+                        } else if (/liabilities|payable|debt|loan|tax|overdraft|accrued/i.test(category) || 
+                                  /liabilities|payable|debt|loan|tax|overdraft|accrued/i.test(sectionContext)) {
+                          type = 'expense'; // Liabilities are negative
+                          if (amount > 0) {
+                            amount = -amount;
+                          }
+                        }
+                      } else if (isIncomeStatement) {
+                        if (/revenue|sales|income|gain/i.test(category) || 
+                            /revenue|sales|income|gain/i.test(sectionContext)) {
+                          type = 'income';
+                        } else if (/expense|cost|salaries|depreciation|tax|cogs|loss/i.test(category) || 
+                                  /expense|cost|salaries|depreciation|tax|cogs|loss/i.test(sectionContext)) {
+                          type = 'expense';
+                          // Ensure expenses are negative
+                          if (amount > 0) {
+                            amount = -amount;
+                          }
+                        }
+                      } else if (isCashFlow) {
+                        // Cash inflows are positive, outflows are negative
+                        if (/inflow|received|proceeds|increase/i.test(category)) {
+                          type = 'income';
+                        } else if (/outflow|paid|payment|decrease|purchase/i.test(category)) {
+                          type = 'expense';
+                          if (amount > 0) {
+                            amount = -amount;
+                          }
+                        }
+                      }
+                      
+                      // 3. IMPROVEMENT: Add metadata for integration with more sophisticated services
+                      const metadata = {
+                        statementType: isBalanceSheet ? 'balance_sheet' as const : 
+                                      isIncomeStatement ? 'income_statement' as const : 
+                                      isCashFlow ? 'cash_flow' as const : 'other' as const,
+                        section: currentSection,
+                        rawText: line
+                      };
+                      
+                      parsedData.push({
+                        date: formattedDate,
+                        amount: amount,
+                        category: category,
+                        description: `From ${isBalanceSheet ? 'Balance Sheet' : 
+                                        isIncomeStatement ? 'Income Statement' : 
+                                        isCashFlow ? 'Cash Flow Statement' : 'Financial Statement'}`,
+                        type: type,
+                        metadata // This will be ignored by existing code but available for future enhancements
+                      });
+                    }
+                  }
+                }
+              } else {
+                // Original transaction-based parsing logic
+                const datePattern = /\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b|\b\d{4}[/-]\d{1,2}[/-]\d{1,2}\b/;
+                const amountPattern = /\$?\s*\d+(?:[.,]\d{2})?\b/;
+                
+                for (const line of lines) {
+                  const dateMatch = line.match(datePattern);
+                  const amountMatch = line.match(amountPattern);
+                  
+                  if (dateMatch && amountMatch) {
+                    const dateStr = dateMatch[0];
+                    const amountStr = amountMatch[0].replace('$', '').trim();
+                    const amount = normalizeAmount(amountStr);
+                    const date = parseDate(dateStr);
+                    
+                    if (date && !isNaN(amount)) {
+                      // Try to extract a description from the line
+                      const description = line
+                        .replace(dateMatch[0], '')
+                        .replace(amountMatch[0], '')
+                        .trim();
+                      
+                      parsedData.push({
+                        date: date ? format(date, 'yyyy-MM-dd') : '',
+                        amount: amount,
+                        category: suggestCategory(description, amount),
+                        description: description,
+                        type: amount >= 0 ? 'income' : 'expense'
+                      });
+                    }
+                  }
+                }
+              }
+              
+              if (parsedData.length > 0) {
+                resolve(parsedData);
+              } else {
+                reject(new Error('Could not extract financial data from PDF. The PDF may not contain recognizable financial records.'));
+              }
+            } catch (error) {
+              reject(new Error(`Failed to process PDF file: ${error}`));
+            }
+          };
+          reader.onerror = () => reject(new Error('Failed to read PDF file'));
           reader.readAsArrayBuffer(file);
         });
       } else {

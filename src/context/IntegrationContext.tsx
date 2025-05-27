@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { useAuth } from './AuthContext';
 import { getFirebaseFirestore } from '../lib/firebase';
@@ -30,6 +30,7 @@ interface PayPalAnalytics {
 interface IntegrationStatus {
   connected: boolean;
   connectedAt?: number;
+  institution?: string;
   balance?: PayPalBalance;
   transactions?: PayPalTransaction[];
   analytics?: PayPalAnalytics;
@@ -42,6 +43,7 @@ interface IntegrationContextType {
   bank: IntegrationStatus;
   refreshStatus: () => Promise<void>;
   updatePayPalStatus: (status: Partial<IntegrationStatus>) => void;
+  updateBankStatus: (status: Partial<IntegrationStatus>) => void;
 }
 
 const defaultStatus: IntegrationStatus = {
@@ -54,7 +56,8 @@ const defaultContext: IntegrationContextType = {
   stripe: defaultStatus,
   bank: defaultStatus,
   refreshStatus: async () => {},
-  updatePayPalStatus: () => {}
+  updatePayPalStatus: () => {},
+  updateBankStatus: () => {}
 };
 
 const IntegrationContext = createContext<IntegrationContextType>(defaultContext);
@@ -74,7 +77,7 @@ export const IntegrationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [stripe, setStripe] = useState<IntegrationStatus>(defaultStatus);
   const [bank, setBank] = useState<IntegrationStatus>(defaultStatus);
 
-  const refreshStatus = async () => {
+  const refreshStatus = useCallback(async () => {
     if (!currentUser) return;
 
     try {
@@ -106,10 +109,14 @@ export const IntegrationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } catch (error) {
       console.error('Failed to fetch integration status:', error);
     }
-  };
+  }, [currentUser]);
 
   const updatePayPalStatus = (status: Partial<IntegrationStatus>) => {
     setPaypal(prev => ({ ...prev, ...status }));
+  };
+
+  const updateBankStatus = (status: Partial<IntegrationStatus>) => {
+    setBank(prev => ({ ...prev, ...status }));
   };
 
   useEffect(() => {
@@ -122,7 +129,7 @@ export const IntegrationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setStripe(defaultStatus);
       setBank(defaultStatus);
     }
-  }, [currentUser]);
+  }, [currentUser, refreshStatus]);
 
   return (
     <IntegrationContext.Provider
@@ -132,7 +139,8 @@ export const IntegrationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         stripe,
         bank,
         refreshStatus,
-        updatePayPalStatus
+        updatePayPalStatus,
+        updateBankStatus
       }}
     >
       {children}
