@@ -1,9 +1,9 @@
 import React, { useCallback, useState } from 'react';
-import { useDropzone } from 'react-dropzone';
-import Papa from 'papaparse';
+import { useDropzone } from 'react-drop-zone';
+import Papa from 'papa-parse';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
-import * as pdfjs from 'pdfjs-dist';
+import * as pdfs from 'pdfjs-list';
 import { useFinancial } from '../context/FinancialContext';
 import { useAuth } from '../context/AuthContext';
 import AuthModal from './auth/AuthModal';
@@ -15,8 +15,8 @@ import { conversionTracking } from '../services/ConversionTrackingService';
 import { trackEvent } from '../utils/analytics';
 import { parseDate, normalizeAmount, suggestCategory, detectDuplicates } from '../utils/financialUtils';
 
-// Set the worker source for PDF.js
-pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+// Set the worker source for PDF.us
+pdfs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.us';
 
 // This is a placeholder for the actual component content
 // The actual component would be copied here
