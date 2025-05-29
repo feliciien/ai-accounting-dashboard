@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import FileUpload from './FileUpload';
 import AiRecommendations from './AiRecommendations';
 import { useFinancial } from '../context/FinancialContext';
@@ -17,14 +17,20 @@ import Testimonials from './Testimonials';
 import OnboardingChecklist from './onboarding/OnboardingChecklist';
 import { conversionTracking, TrialInfo } from '../services/ConversionTrackingService';
 import { trackEvent } from '../utils/analytics';
+
 import CashFlowForecast from './CashFlowForecast';
 import SubscriptionBanner from './SubscriptionBanner';
 import SubscriptionCTA from './SubscriptionCTA';
+import ReferralSystem from './ReferralSystem';
+import { useNotification } from '../context/NotificationContext';
+import { useUserPreferences } from '../context/UserPreferencesContext';
 
 
 const Dashboard: React.FC = () => {
   const { chartData, rawData } = useFinancial();
   const { currentUser, logout, uploadLimits } = useAuth();
+  const { addNotification } = useNotification();
+  const { favorites, achievements, tutorials, updateAchievementProgress, completeTutorial } = useUserPreferences();
   const [activeTab, setActiveTab] = React.useState<'overview' | 'tasks' | 'insights'>('overview');
   const [isChatOpen, setIsChatOpen] = React.useState(false);
   const [showAuthModal, setShowAuthModal] = React.useState(false);
@@ -32,6 +38,9 @@ const Dashboard: React.FC = () => {
   const [trialInfo, setTrialInfo] = React.useState<TrialInfo>(conversionTracking.getTrialInfo());
   const [sessionStartTime] = React.useState<number>(Date.now());
   const [hasInteracted, setHasInteracted] = React.useState(false);
+  const [lastLoginDate, setLastLoginDate] = React.useState<string | null>(null);
+  const [loginStreak, setLoginStreak] = React.useState<number>(0);
+  const [showWelcomeBack, setShowWelcomeBack] = React.useState<boolean>(false);
   const visitTracked = useRef<boolean>(false);
 
   // Handle user interaction
@@ -39,11 +48,181 @@ const Dashboard: React.FC = () => {
     const handleInteraction = () => setHasInteracted(true);
     window.addEventListener('click', handleInteraction);
     window.addEventListener('keydown', handleInteraction);
+    
+    // Track dashboard visit
+    if (currentUser) {
+      trackEvent('dashboard_visit', {
+        userId: currentUser.uid,
+        timestamp: new Date().toISOString()
+      });
+    }
+    
     return () => {
       window.removeEventListener('click', handleInteraction);
       window.removeEventListener('keydown', handleInteraction);
     };
-  }, []);
+  }, [currentUser]);
+  
+  // Effect for tracking dashboard visit duration and usage achievements
+  React.useEffect(() => {
+    const startTime = new Date();
+    let timeSpentInterval: NodeJS.Timeout | undefined;
+    
+    if (currentUser) {
+      // Track total visits
+      const totalVisits = parseInt(localStorage.getItem(`totalVisits_${currentUser.uid}`) || '0') + 1;
+      localStorage.setItem(`totalVisits_${currentUser.uid}`, totalVisits.toString());
+      
+      // Check for visit count achievements
+      if (totalVisits === 5) {
+        addNotification('success', '🏆 Achievement Unlocked: 5 Visits! You\'re becoming a regular!');
+        
+        // Update achievements in user preferences
+        const visitAchievement = achievements.find(a => a.id === 'visits-5');
+        if (visitAchievement && !visitAchievement.completed) {
+          updateAchievementProgress('visits-5', 100); // 100% progress means completed
+        }
+      } else if (totalVisits === 10) {
+        addNotification('success', '🏆 Achievement Unlocked: 10 Visits! You\'re a dedicated user!');
+        
+        // Update achievements in user preferences
+        const visitAchievement = achievements.find(a => a.id === 'visits-10');
+        if (visitAchievement && !visitAchievement.completed) {
+          updateAchievementProgress('visits-10', 100); // 100% progress means completed
+        }
+      } else if (totalVisits === 25) {
+        addNotification('success', '🏆 Achievement Unlocked: 25 Visits! You\'re a financial pro!');
+        
+        // Update achievements in user preferences
+        const visitAchievement = achievements.find(a => a.id === 'visits-25');
+        if (visitAchievement && !visitAchievement.completed) {
+          updateAchievementProgress('visits-25', 100); // 100% progress means completed
+        }
+      }
+      
+      // After 3 visits, mark the tutorial as completed if not already
+      if (totalVisits === 3) {
+        const tutorialProgress = tutorials.find(t => t.id === 'dashboard-intro');
+        if (tutorialProgress && !tutorialProgress.completed) {
+          completeTutorial('dashboard-intro');
+          
+          addNotification('info', '✅ You\'ve completed the dashboard introduction! Explore all features to get the most out of your account.');
+        }
+      }
+      
+      // Track time spent in real-time (update every 10 seconds)
+      timeSpentInterval = setInterval(() => {
+        const currentTime = new Date();
+        const sessionTimeInSeconds = Math.floor((currentTime.getTime() - startTime.getTime()) / 1000);
+        
+        // Update total time spent
+        const totalTimeSpent = parseInt(localStorage.getItem(`totalTimeSpent_${currentUser.uid}`) || '0') + 10;
+        localStorage.setItem(`totalTimeSpent_${currentUser.uid}`, totalTimeSpent.toString());
+        
+        // Check for time spent achievements (in minutes)
+        const totalMinutes = Math.floor(totalTimeSpent / 60);
+        
+        if (totalMinutes === 30 && !localStorage.getItem(`achievement_time_30_${currentUser.uid}`)) {
+          localStorage.setItem(`achievement_time_30_${currentUser.uid}`, 'true');
+          
+          addNotification('success', '🏆 Achievement Unlocked: 30 Minutes! You\'re investing in your financial health!');
+          
+          // Update achievements in user preferences
+          const timeAchievement = achievements.find(a => a.id === 'time-30');
+          if (timeAchievement && !timeAchievement.completed) {
+            updateAchievementProgress('time-30', 100); // 100% progress means completed
+          }
+        } else if (totalMinutes === 60 && !localStorage.getItem(`achievement_time_60_${currentUser.uid}`)) {
+          localStorage.setItem(`achievement_time_60_${currentUser.uid}`, 'true');
+          
+          addNotification('success', '🏆 Achievement Unlocked: 1 Hour! You\'re a dedicated financial planner!');
+          
+          // Update achievements in user preferences
+          const timeAchievement = achievements.find(a => a.id === 'time-60');
+          if (timeAchievement && !timeAchievement.completed) {
+            updateAchievementProgress('time-60', 100); // 100% progress means completed
+          }
+        }
+      }, 10000); // Every 10 seconds
+    }
+    
+    return () => {
+      if (timeSpentInterval) {
+        clearInterval(timeSpentInterval);
+      }
+      
+      if (currentUser) {
+        const endTime = new Date();
+        const durationInSeconds = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+        
+        // Only log if they spent at least 5 seconds on the dashboard
+        if (durationInSeconds >= 5) {
+          trackEvent('dashboard_time_spent', {
+            userId: currentUser.uid,
+            durationInSeconds,
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+    };
+  }, [currentUser, addNotification, achievements, updateAchievementProgress, tutorials, completeTutorial]);
+  // Track login streak and show welcome back message
+  React.useEffect(() => {
+    if (currentUser) {
+      // Get last login date from localStorage
+      const storedLastLogin = localStorage.getItem(`lastLogin_${currentUser.uid}`);
+      const storedLoginStreak = localStorage.getItem(`loginStreak_${currentUser.uid}`);
+      
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      
+      let newStreak = 1;
+      
+      if (storedLastLogin) {
+        setLastLoginDate(storedLastLogin);
+        
+        // If last login was yesterday, increment streak
+        if (storedLastLogin === yesterdayStr) {
+          newStreak = storedLoginStreak ? parseInt(storedLoginStreak) + 1 : 1;
+          setLoginStreak(newStreak);
+          
+          // Show achievement notification for streaks
+          if (newStreak === 3) {
+            addNotification('success', '🔥 3-day streak! Keep up the good work!');
+            updateAchievementProgress('login_streak_3', 100);
+          } else if (newStreak === 7) {
+            addNotification('success', '🏆 7-day streak! You\'re on fire!');
+            updateAchievementProgress('login_streak_7', 100);
+          } else if (newStreak === 30) {
+            addNotification('success', '⭐ Amazing! 30-day login streak achieved!');
+            updateAchievementProgress('login_streak_30', 100);
+          }
+        } 
+        // If last login was not today (but not yesterday), reset streak
+        else if (storedLastLogin !== today) {
+          newStreak = 1;
+          setLoginStreak(1);
+        } 
+        // If already logged in today, maintain streak
+        else {
+          newStreak = storedLoginStreak ? parseInt(storedLoginStreak) : 1;
+          setLoginStreak(newStreak);
+        }
+        
+        // Only show welcome back if not first login of the day
+        if (storedLastLogin !== today) {
+          setShowWelcomeBack(true);
+          setTimeout(() => setShowWelcomeBack(false), 5000); // Hide after 5 seconds
+        }
+      }
+      
+      // Update localStorage with today's date and current streak
+      localStorage.setItem(`lastLogin_${currentUser.uid}`, today);
+      localStorage.setItem(`loginStreak_${currentUser.uid}`, newStreak.toString());
+    }
+  }, [currentUser, addNotification, updateAchievementProgress]);
 
   // Toggle chat box visibility
   const toggleChatBox = () => {
@@ -88,12 +267,55 @@ const Dashboard: React.FC = () => {
     }
   }, [chartData, rawData, currentUser]);
   
-  // Track dashboard visit duration
+  // Track dashboard visit duration and user activity
   React.useEffect(() => {
     // Check trial status periodically
     const trialCheckInterval = setInterval(() => {
       setTrialInfo(conversionTracking.getTrialInfo());
     }, 60000); // Check every minute
+    
+    // Track user activity milestones
+    const trackActivityMilestones = () => {
+      if (!currentUser) return;
+      
+      // Get stored activity data
+      const totalVisitsKey = `totalVisits_${currentUser.uid}`;
+      const totalTimeSpentKey = `totalTimeSpent_${currentUser.uid}`;
+      const lastMilestoneKey = `lastMilestone_${currentUser.uid}`;
+      
+      const storedVisits = parseInt(localStorage.getItem(totalVisitsKey) || '0');
+      const storedTimeSpent = parseInt(localStorage.getItem(totalTimeSpentKey) || '0'); // in seconds
+      const lastMilestone = parseInt(localStorage.getItem(lastMilestoneKey) || '0');
+      
+      // Update visits count
+      const newVisitsCount = storedVisits + 1;
+      localStorage.setItem(totalVisitsKey, newVisitsCount.toString());
+      
+      // Check for visit count milestones
+      if (newVisitsCount === 5 && lastMilestone < 5) {
+        addNotification('success', '🌟 You\'ve visited the dashboard 5 times! Thanks for your engagement!');
+        updateAchievementProgress('visits_5', 100);
+        localStorage.setItem(lastMilestoneKey, '5');
+      } else if (newVisitsCount === 10 && lastMilestone < 10) {
+        addNotification('success', '🏅 10 visits! You\'re becoming a financial pro!');
+        updateAchievementProgress('visits_10', 100);
+        localStorage.setItem(lastMilestoneKey, '10');
+      } else if (newVisitsCount === 25 && lastMilestone < 25) {
+        addNotification('success', '🏆 25 visits! Your dedication to financial management is impressive!');
+        updateAchievementProgress('visits_25', 100);
+        localStorage.setItem(lastMilestoneKey, '25');
+      }
+      
+      // Complete onboarding tutorial if this is at least the 3rd visit
+      if (newVisitsCount >= 3) {
+        completeTutorial('dashboard_basics');
+      }
+    };
+    
+    // Track initial visit
+    if (currentUser && !visitTracked.current) {
+      trackActivityMilestones();
+    }
     
     // Track visit on component unmount
     return () => {
@@ -103,15 +325,36 @@ const Dashboard: React.FC = () => {
       const durationSeconds = Math.floor((Date.now() - sessionStartTime) / 1000);
       
       // Only track if visit is longer than 5 seconds
-      if (durationSeconds > 5) {
+      if (durationSeconds > 5 && currentUser) {
+        // Track in conversion service
         conversionTracking.trackDashboardVisit(
           durationSeconds,
-          currentUser?.uid
+          currentUser.uid
         );
         visitTracked.current = true;
+        
+        // Update total time spent
+        const totalTimeSpentKey = `totalTimeSpent_${currentUser.uid}`;
+        const storedTimeSpent = parseInt(localStorage.getItem(totalTimeSpentKey) || '0');
+        const newTimeSpent = storedTimeSpent + durationSeconds;
+        localStorage.setItem(totalTimeSpentKey, newTimeSpent.toString());
+        
+        // Check for time spent milestones (in minutes)
+        const minutesSpent = Math.floor(newTimeSpent / 60);
+        const lastTimeMilestoneKey = `lastTimeMilestone_${currentUser.uid}`;
+        const lastTimeMilestone = parseInt(localStorage.getItem(lastTimeMilestoneKey) || '0');
+        
+        if (minutesSpent >= 60 && lastTimeMilestone < 60) {
+          // Will show on next login
+          localStorage.setItem(lastTimeMilestoneKey, '60');
+          updateAchievementProgress('time_spent_60min', 100);
+        } else if (minutesSpent >= 30 && lastTimeMilestone < 30) {
+          localStorage.setItem(lastTimeMilestoneKey, '30');
+          updateAchievementProgress('time_spent_30min', 100);
+        }
       }
     };
-  }, [sessionStartTime, currentUser]);
+  }, [sessionStartTime, currentUser, addNotification, updateAchievementProgress, completeTutorial]);
 
 interface WorkflowTask {
   id: number;
@@ -178,6 +421,38 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
         {/* Enhanced Subscription Banner - only shown to non-premium users */}
         {!uploadLimits.hasPremium && (
           <SubscriptionBanner className="mb-6 sticky top-0 z-20" />  
+        )}
+        
+        {/* Welcome Back Message */}
+        {showWelcomeBack && currentUser && (
+          <div className="bg-gradient-to-r from-primary-50 to-blue-50 border border-primary-100 rounded-lg p-4 mb-6 mx-4 animate-fadeIn shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
+                  <span className="text-primary-600 text-lg">👋</span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">Welcome back, {currentUser.email?.split('@')[0]}!</h3>
+                  <p className="text-sm text-gray-600">
+                    {loginStreak > 1 ? (
+                      <span className="flex items-center">
+                        <span className="font-medium text-primary-600">{loginStreak}-day streak!</span>
+                        <span className="ml-2 text-yellow-500">{Array(Math.min(loginStreak, 5)).fill('🔥').join('')}</span>
+                      </span>
+                    ) : 'Great to see you again!'}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowWelcomeBack(false)}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
         )}
         {/* Floating Action Button for Chat */}
         <button
@@ -294,6 +569,86 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
             {/* Getting Started Checklist */}
             <OnboardingChecklist className="mb-6" />
             
+            {/* User Activity Summary - Only for logged in users */}
+            {currentUser && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900">Your Activity</h2>
+                  {loginStreak > 1 && (
+                    <div className="bg-primary-100 text-primary-800 text-xs font-semibold px-3 py-1 rounded-full flex items-center">
+                      <span className="mr-1">{loginStreak}-day streak</span>
+                      <span className="text-yellow-500">🔥</span>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* Login Streak */}
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-100">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-medium text-gray-700">Login Streak</h3>
+                      <span className="text-yellow-500 text-lg">🔥</span>
+                    </div>
+                    <p className="mt-2 text-2xl font-bold text-gray-900">{loginStreak} {loginStreak === 1 ? 'day' : 'days'}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {loginStreak > 1 ? 'Keep the streak going!' : 'Come back tomorrow to start a streak!'}
+                    </p>
+                  </div>
+                  
+                  {/* Total Visits */}
+                  <div className="bg-gradient-to-br from-green-50 to-teal-50 rounded-lg p-4 border border-green-100">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-medium text-gray-700">Total Visits</h3>
+                      <span className="text-green-500 text-lg">📊</span>
+                    </div>
+                    <p className="mt-2 text-2xl font-bold text-gray-900">
+                      {parseInt(localStorage.getItem(`totalVisits_${currentUser.uid}`) || '1')}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {parseInt(localStorage.getItem(`totalVisits_${currentUser.uid}`) || '1') >= 5 ? 'You\'re a regular!' : 'Just getting started!'}
+                    </p>
+                  </div>
+                  
+                  {/* Time Spent */}
+                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4 border border-purple-100">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-medium text-gray-700">Time Spent</h3>
+                      <span className="text-purple-500 text-lg">⏱️</span>
+                    </div>
+                    <p className="mt-2 text-2xl font-bold text-gray-900">
+                      {Math.floor(parseInt(localStorage.getItem(`totalTimeSpent_${currentUser.uid}`) || '0') / 60)} min
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {Math.floor(parseInt(localStorage.getItem(`totalTimeSpent_${currentUser.uid}`) || '0') / 60) >= 30 ? 'You\'re dedicated!' : 'Building good habits!'}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Achievements */}
+                {achievements.length > 0 && (
+                  <div className="mt-4">
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">Recent Achievements</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {achievements
+                        .filter(a => a.completed)
+                        .slice(0, 3)
+                        .map(achievement => (
+                          <div key={achievement.id} className="bg-yellow-50 border border-yellow-100 rounded-full px-3 py-1 text-xs font-medium text-yellow-800 flex items-center">
+                            <span className="mr-1">🏆</span>
+                            {achievement.name}
+                          </div>
+                        ))}
+                      {achievements.filter(a => a.completed).length > 3 && (
+                        <div className="bg-gray-50 border border-gray-200 rounded-full px-3 py-1 text-xs font-medium text-gray-600">
+                          +{achievements.filter(a => a.completed).length - 3} more
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            
             {/* Enhanced Trial Banner with Countdown */}
             {trialInfo.isActive && trialInfo.daysRemaining <= 7 && (
               <div className={`${trialInfo.daysRemaining <= 2 ? 'bg-red-50 border-red-100' : 'bg-yellow-50 border-yellow-100'} border rounded-xl p-5 mb-6 shadow-md transition-all duration-300 transform hover:scale-[1.01]`}>
@@ -339,24 +694,82 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
               </div>
             )}
             
-            {/* Smart Alert for File Upload */}
-            {rawData.length === 0 && (
-              <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3 flex-1 md:flex md:justify-between">
-                    <p className="text-sm text-blue-700">You haven't uploaded a file yet — upload now for your forecast.</p>
-                    <p className="mt-3 text-sm md:mt-0 md:ml-6">
-                      <a href="#file-upload" className="whitespace-nowrap font-medium text-blue-700 hover:text-blue-600">Upload now <span aria-hidden="true">&rarr;</span></a>
-                    </p>
-                  </div>
+            {/* Data Completeness Progress */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">Financial Data Completeness</h2>
+                <div className="text-sm font-medium text-gray-500">
+                  {rawData.length > 0 ? `${Math.min(100, Math.floor(rawData.length / 10 * 100))}%` : '0%'} Complete
                 </div>
               </div>
-            )}
+              
+              {/* Progress bar */}
+              <div className="w-full bg-gray-100 rounded-full h-2.5 mb-4">
+                <div 
+                  className="bg-primary-600 h-2.5 rounded-full transition-all duration-500 ease-out" 
+                  style={{ width: `${rawData.length > 0 ? Math.min(100, Math.floor(rawData.length / 10 * 100)) : 0}%` }}
+                ></div>
+              </div>
+              
+              {rawData.length === 0 ? (
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3 flex-1 md:flex md:justify-between">
+                      <p className="text-sm text-blue-700">You haven't uploaded a file yet — upload now for your forecast.</p>
+                      <p className="mt-3 text-sm md:mt-0 md:ml-6">
+                        <a href="#file-upload" className="whitespace-nowrap font-medium text-blue-700 hover:text-blue-600">Upload now <span aria-hidden="true">&rarr;</span></a>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="flex items-center">
+                    <div className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${rawData.length > 0 ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                      {rawData.length > 0 ? (
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : '1'}
+                    </div>
+                    <div className="ml-3">
+                      <p className={`text-sm font-medium ${rawData.length > 0 ? 'text-green-800' : 'text-gray-500'}`}>Upload Financial Data</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center">
+                    <div className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${rawData.length >= 5 ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                      {rawData.length >= 5 ? (
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : '2'}
+                    </div>
+                    <div className="ml-3">
+                      <p className={`text-sm font-medium ${rawData.length >= 5 ? 'text-green-800' : 'text-gray-500'}`}>Add More Transactions</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center">
+                    <div className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${rawData.length >= 10 ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                      {rawData.length >= 10 ? (
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : '3'}
+                    </div>
+                    <div className="ml-3">
+                      <p className={`text-sm font-medium ${rawData.length >= 10 ? 'text-green-800' : 'text-gray-500'}`}>Complete Financial Profile</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
             
             {/* Strategic CTA for non-premium users */}
             {!uploadLimits.hasPremium && (
@@ -525,6 +938,13 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
         {/* Testimonials Section - Only shown on overview tab */}
         {activeTab === 'overview' && (
           <>
+            {/* Referral System - Only shown to logged in users */}
+            {currentUser && (
+              <div className="mt-8 mb-8">
+                <ReferralSystem className="bg-white rounded-xl shadow-sm border border-gray-100" />
+              </div>
+            )}
+            
             {/* Subscription CTA */}
             {!uploadLimits.hasPremium && (
               <div className="mt-8 mb-8">
