@@ -17,6 +17,7 @@ export interface PaymentDetails {
   subscriptionId?: string;
   subscriptionStatus?: string;
   planId?: string;
+  planType?: 'monthly' | 'annual';
 }
 
 export interface SubscriptionStatus {
@@ -64,7 +65,8 @@ export const updateUserPremiumStatus = async (
       purchaseDate: new Date().toISOString(),
       subscriptionId: paymentDetails.subscriptionId,
       subscriptionStatus: paymentDetails.subscriptionStatus || 'ACTIVE',
-      planId: paymentDetails.planId || 'P-8Y551355TK076831TM5M7OZA'
+      planId: paymentDetails.planId || 'P-8Y551355TK076831TM5M7OZA',
+      planType: paymentDetails.planType
     }
   });
 };

@@ -175,9 +175,9 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-50 relative">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       <div className="flex-1 w-full overflow-x-hidden">
-        {/* Subscription Banner - only shown to non-premium users */}
+        {/* Enhanced Subscription Banner - only shown to non-premium users */}
         {!uploadLimits.hasPremium && (
-          <SubscriptionBanner className="mb-6" />
+          <SubscriptionBanner className="mb-6 sticky top-0 z-20" />  
         )}
         {/* Floating Action Button for Chat */}
         <button
@@ -294,27 +294,32 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
             {/* Getting Started Checklist */}
             <OnboardingChecklist className="mb-6" />
             
-            {/* Trial Banner */}
-            {trialInfo.isActive && trialInfo.daysRemaining <= 3 && (
-              <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-4 mb-6">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-yellow-800">
-                      Your trial ends in {trialInfo.daysRemaining} {trialInfo.daysRemaining === 1 ? 'day' : 'days'}
-                    </h3>
-                    <div className="mt-2 text-sm text-yellow-700">
-                      <p>Upgrade now to keep access to unlimited uploads and AI-powered insights.</p>
+            {/* Enhanced Trial Banner with Countdown */}
+            {trialInfo.isActive && trialInfo.daysRemaining <= 7 && (
+              <div className={`${trialInfo.daysRemaining <= 2 ? 'bg-red-50 border-red-100' : 'bg-yellow-50 border-yellow-100'} border rounded-xl p-5 mb-6 shadow-md transition-all duration-300 transform hover:scale-[1.01]`}>
+                <div className="flex flex-col md:flex-row md:items-center">
+                  <div className="flex items-center mb-3 md:mb-0">
+                    <div className="flex-shrink-0">
+                      <svg className={`h-8 w-8 ${trialInfo.daysRemaining <= 2 ? 'text-red-400 animate-pulse' : 'text-yellow-400'}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-4">
+                      <h3 className={`text-lg font-bold ${trialInfo.daysRemaining <= 2 ? 'text-red-800' : 'text-yellow-800'}`}>
+                        {trialInfo.daysRemaining <= 2 ? 'Final Notice:' : 'Limited Time:'} Your trial ends in <span className="font-extrabold">{trialInfo.daysRemaining}</span> {trialInfo.daysRemaining === 1 ? 'day' : 'days'}
+                      </h3>
+                      <div className="mt-1 text-sm font-medium text-gray-700">
+                        <p>Don't lose access to unlimited uploads, AI-powered insights, and premium features.</p>
+                      </div>
                     </div>
                   </div>
-                  <div className="ml-auto">
+                  <div className="md:ml-auto mt-3 md:mt-0 flex flex-col sm:flex-row gap-2 sm:items-center">
+                    <div className="text-center px-3 py-1 rounded-full bg-gray-100 text-gray-800 text-xs font-semibold">
+                      Save 20% Today
+                    </div>
                     <Link
                       to="/pricing"
-                      className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-yellow-700 bg-yellow-100 hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+                      className={`inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm ${trialInfo.daysRemaining <= 2 ? 'text-white bg-red-600 hover:bg-red-700' : 'text-yellow-900 bg-yellow-300 hover:bg-yellow-400'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-colors duration-150`}
                       onClick={() => {
                         if (currentUser) {
                           trackEvent('trial_banner_click', {
@@ -325,6 +330,9 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
                       }}
                     >
                       Upgrade Now
+                      <svg className="ml-2 -mr-0.5 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
                     </Link>
                   </div>
                 </div>
@@ -347,6 +355,13 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
                     </p>
                   </div>
                 </div>
+              </div>
+            )}
+            
+            {/* Strategic CTA for non-premium users */}
+            {!uploadLimits.hasPremium && (
+              <div className="mb-6">
+                <SubscriptionCTA variant="full" className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 shadow-md" />
               </div>
             )}
             

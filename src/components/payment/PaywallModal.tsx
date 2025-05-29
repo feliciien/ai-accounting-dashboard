@@ -9,6 +9,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { updateUserPremiumStatus, PaymentDetails } from '../../services/userService';
 import { verifyPayPalConfig, PayPalConfigStatus } from '../../lib/paypalConfigVerifier';
+import { ArrowRightIcon, CheckIcon, ShieldCheckIcon } from '@heroicons/react/solid';
 
 // Define the types that are missing from the library
 type OrderResponseBody = {
@@ -32,13 +33,30 @@ interface PaywallModalProps {
   onClose: () => void;
 }
 
+type PlanType = 'monthly' | 'annual';
+
 const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [paypalStatus, setPaypalStatus] = useState<PayPalConfigStatus | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<PlanType>('annual');
   
   const { currentUser, updateUploadLimits } = useAuth();
+  
+  // Plan pricing details
+  const plans = {
+    monthly: {
+      price: 9.99,
+      planId: process.env.REACT_APP_PAYPAL_MONTHLY_PLAN_ID || 'P-8Y551355TK076831TM5M7OZA'
+    },
+    annual: {
+      price: 95.88, // $7.99/month billed annually
+      originalPrice: 119.88, // Original price before discount
+      discount: 20, // 20% discount
+      planId: process.env.REACT_APP_PAYPAL_ANNUAL_PLAN_ID || 'P-5ML4271244454362XMQWU3ZY'
+    }
+  };
   
   // Verify PayPal configuration when component mounts
   useEffect(() => {
@@ -66,7 +84,7 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose }) => {
   
   if (!isOpen) return null;
   
-  const handlePaymentSuccess = async (details: OrderResponseBody) => {
+  const handlePaymentSuccess = async (details: OrderResponseBody, planType: PlanType) => {
     setLoading(true);
     setError('');
     
@@ -79,10 +97,14 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose }) => {
       const paymentDetails: PaymentDetails = {
         transactionId: details.id,
         payerId: details.payer.payer_id,
-        amount: details.purchase_units[0].amount.value,
-        currency: details.purchase_units[0].amount.currency_code,
+        amount: String(plans[planType].price),
+        currency: details.purchase_units[0].amount.currency_code || 'USD',
         status: details.status,
-        purchaseDate: new Date().toISOString()
+        purchaseDate: new Date().toISOString(),
+        planType: planType,
+        subscriptionId: details.id,
+        subscriptionStatus: 'ACTIVE',
+        planId: plans[planType].planId
       };
       
       // Update user's premium status using the service
@@ -92,7 +114,7 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose }) => {
       await updateUploadLimits({ hasPremium: true });
       
       setSuccess(true);
-      console.log('Premium subscription activated successfully');
+      console.log(`Premium ${planType} subscription activated successfully`);
     } catch (err: any) {
       console.error('Payment processing error:', err);
       setError(err.message || 'Failed to process payment');
@@ -133,44 +155,112 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose }) => {
             
             {success ? (
               <div className="text-center py-8">
-                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-                  <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
+                <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100">
+                  <CheckIcon className="h-8 w-8 text-green-600" />
                 </div>
-                <h3 className="mt-4 text-lg font-medium text-gray-900">Subscription activated!</h3>
-                <p className="mt-1 text-sm text-gray-500">Thank you for subscribing to our premium plan. You now have unlimited uploads and access to all premium features.</p>
+                <h3 className="mt-4 text-xl font-bold text-gray-900">Subscription activated!</h3>
+                <p className="mt-2 text-gray-600">Thank you for subscribing to our premium plan. You now have unlimited uploads and access to all premium features.</p>
+                <div className="mt-6 bg-blue-50 p-4 rounded-lg border border-blue-100">
+                  <p className="text-blue-800 font-medium">Your account has been upgraded successfully!</p>
+                  <p className="text-sm text-blue-700 mt-1">Refresh the page to see all your new premium features.</p>
+                </div>
               </div>
             ) : (
               <>
-                <div className="mb-6 p-4 bg-primary-50 rounded-lg border border-primary-100">
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Premium Benefits</h3>
-                  <ul className="space-y-2">
+                <div className="mb-6 p-5 bg-gradient-to-br from-blue-50 to-primary-50 rounded-lg border border-primary-200 shadow-sm">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-lg font-bold text-gray-900">Premium Benefits</h3>
+                    <span className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full">MOST POPULAR</span>
+                  </div>
+                  <ul className="space-y-3">
                     <li className="flex items-start">
-                      <svg className="h-5 w-5 text-primary-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span className="text-gray-700">Unlimited document uploads</span>
+                      <CheckIcon className="h-5 w-5 text-primary-600 mr-2 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <span className="text-gray-800 font-medium">Unlimited document uploads</span>
+                        <p className="text-xs text-gray-600 mt-0.5">No more monthly limits - upload as many documents as you need</p>
+                      </div>
                     </li>
                     <li className="flex items-start">
-                      <svg className="h-5 w-5 text-primary-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span className="text-gray-700">Advanced financial insights</span>
+                      <CheckIcon className="h-5 w-5 text-primary-600 mr-2 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <span className="text-gray-800 font-medium">Advanced financial insights</span>
+                        <p className="text-xs text-gray-600 mt-0.5">Detailed analytics and AI-powered recommendations</p>
+                      </div>
                     </li>
                     <li className="flex items-start">
-                      <svg className="h-5 w-5 text-primary-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span className="text-gray-700">Priority customer support</span>
+                      <CheckIcon className="h-5 w-5 text-primary-600 mr-2 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <span className="text-gray-800 font-medium">Export features</span>
+                        <p className="text-xs text-gray-600 mt-0.5">Export your data in multiple formats (PDF, CSV, Excel)</p>
+                      </div>
+                    </li>
+                    <li className="flex items-start">
+                      <CheckIcon className="h-5 w-5 text-primary-600 mr-2 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <span className="text-gray-800 font-medium">Bank integration</span>
+                        <p className="text-xs text-gray-600 mt-0.5">Connect directly with your bank accounts</p>
+                      </div>
+                    </li>
+                    <li className="flex items-start">
+                      <CheckIcon className="h-5 w-5 text-primary-600 mr-2 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <span className="text-gray-800 font-medium">Priority customer support</span>
+                        <p className="text-xs text-gray-600 mt-0.5">Get help when you need it with priority response times</p>
+                      </div>
                     </li>
                   </ul>
                 </div>
                 
                 <div className="mb-6">
+                  <div className="flex justify-center space-x-4 mb-4">
+                    <button
+                      onClick={() => setSelectedPlan('monthly')}
+                      className={`flex-1 py-2 px-4 rounded-lg border ${selectedPlan === 'monthly' 
+                        ? 'bg-primary-50 border-primary-300 ring-2 ring-primary-200' 
+                        : 'bg-white border-gray-300 hover:bg-gray-50'}`}
+                    >
+                      <div className="text-center">
+                        <div className="font-medium text-gray-900">Monthly</div>
+                        <div className="text-sm text-gray-500">$9.99/month</div>
+                      </div>
+                    </button>
+                    
+                    <button
+                      onClick={() => setSelectedPlan('annual')}
+                      className={`flex-1 py-2 px-4 rounded-lg border relative ${selectedPlan === 'annual' 
+                        ? 'bg-primary-50 border-primary-300 ring-2 ring-primary-200' 
+                        : 'bg-white border-gray-300 hover:bg-gray-50'}`}
+                    >
+                      {/* Discount badge */}
+                      <div className="absolute -top-3 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">SAVE 20%</div>
+                      <div className="text-center">
+                        <div className="font-medium text-gray-900">Annual</div>
+                        <div className="text-sm">
+                          <span className="text-gray-500">$7.99/month</span>
+                          <div className="text-xs text-gray-500">billed annually</div>
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                  
                   <div className="flex justify-center items-baseline">
-                    <span className="text-5xl font-extrabold text-gray-900">$9.99</span>
-                    <span className="text-gray-500 ml-1">/month</span>
+                    {selectedPlan === 'monthly' ? (
+                      <>
+                        <span className="text-4xl font-extrabold text-gray-900">$9.99</span>
+                        <span className="text-gray-500 ml-1">/month</span>
+                      </>
+                    ) : (
+                      <div className="text-center">
+                        <div className="flex items-center justify-center">
+                          <span className="text-4xl font-extrabold text-gray-900">$95.88</span>
+                          <span className="text-gray-500 ml-1">/year</span>
+                        </div>
+                        <div className="text-sm text-gray-500 mt-1 flex items-center justify-center">
+                          <span className="line-through mr-2">$119.88</span>
+                          <span className="text-red-500 font-medium">Save 20%</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 
@@ -204,8 +294,8 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose }) => {
                         disabled={loading}
                         fundingSource={FUNDING.PAYPAL}
                         createSubscription={(_data, actions) => {
-                          // Use environment variable for plan ID if available, otherwise use default
-                          const planId = process.env.REACT_APP_PAYPAL_MONTHLY_PLAN_ID || 'P-8Y551355TK076831TM5M7OZA';
+                          // Use selected plan ID
+                          const planId = plans[selectedPlan].planId;
                           return actions.subscription.create({
                             plan_id: planId
                           });
@@ -224,7 +314,7 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose }) => {
                               },
                               purchase_units: [{
                                 amount: {
-                                  value: '10',
+                                  value: String(plans[selectedPlan].price),
                                   currency_code: 'USD'
                                 }
                               }]
@@ -234,13 +324,14 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose }) => {
                             const paymentDetails: PaymentDetails = {
                               transactionId: data.orderID || data.subscriptionID || 'unknown-transaction',
                               payerId: data.payerID || 'unknown',
-                              amount: '9.99',
+                              amount: String(plans[selectedPlan].price),
                               currency: 'USD',
                               status: 'COMPLETED',
                               purchaseDate: new Date().toISOString(),
                               subscriptionId: data.subscriptionID || undefined,
                               subscriptionStatus: 'ACTIVE',
-                              planId: process.env.REACT_APP_PAYPAL_MONTHLY_PLAN_ID || 'P-8Y551355TK076831TM5M7OZA'
+                              planId: plans[selectedPlan].planId,
+                              planType: selectedPlan
                             };
                             
                             // Update user's premium status directly with subscription data
@@ -250,7 +341,7 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose }) => {
                                   // Update local state
                                   updateUploadLimits({ hasPremium: true });
                                   setSuccess(true);
-                                  console.log('Premium subscription activated successfully');
+                                  console.log(`Premium ${selectedPlan} subscription activated successfully`);
                                   resolve();
                                 })
                                 .catch((err) => {
@@ -278,6 +369,13 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose }) => {
                           setError('Payment was cancelled. You can try again when ready.');
                         }}
                       />
+                      <div className="mt-4 flex items-center justify-center text-sm text-gray-500">
+                        <ShieldCheckIcon className="h-4 w-4 mr-1 text-gray-400" />
+                        <span>Secure payment processing by PayPal</span>
+                      </div>
+                      <div className="mt-3 text-center text-xs text-gray-500">
+                        30-day money-back guarantee. Cancel anytime.  
+                      </div>
                     </PayPalScriptProvider>
                   )}
                 </div>
