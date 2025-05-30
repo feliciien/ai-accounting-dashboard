@@ -16,6 +16,9 @@ interface ChartData {
 interface FinancialContextType {
   rawData: CashflowData[];
   chartData: ChartData[];
+  uploadLimits: {
+    hasPremium: boolean;
+  };
   setFinancialData: (data: CashflowData[]) => void;
   updateRawData: (data: CashflowData[]) => void;
 }
@@ -33,6 +36,7 @@ export const useFinancial = () => {
 export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [rawData, setRawData] = useState<CashflowData[]>([]);
   const [chartData, setChartData] = useState<ChartData[]>([]);
+  const [uploadLimits, setUploadLimits] = useState({ hasPremium: false });
 
   const processData = (data: CashflowData[]) => {
     setRawData(data);
@@ -77,6 +81,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       value={{
         rawData,
         chartData,
+        uploadLimits,
         setFinancialData: processData,
         updateRawData,
       }}

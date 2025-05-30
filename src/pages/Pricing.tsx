@@ -52,6 +52,9 @@ const Pricing: React.FC = () => {
             <p className="mt-6 text-gray-500">Perfect for trying out Workfusion.</p>
 
             <ul className="mt-6 space-y-6">
+              <li className="flex items-center text-red-600 font-medium">
+                🔥 Users who upgraded reported 93% better insights in 2 weeks
+              </li>
               <li className="flex">
                 <svg className="flex-shrink-0 w-6 h-6 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />

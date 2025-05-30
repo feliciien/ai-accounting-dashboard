@@ -21,7 +21,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ isOpen, onClose }) => {
   const [isMinimized, setIsMinimized] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatBoxRef = useRef<HTMLDivElement>(null);
-  const { rawData } = useFinancial();
+  const { rawData, uploadLimits } = useFinancial();
 
   // Handle click outside to close
   useEffect(() => {
@@ -52,23 +52,20 @@ const ChatBox: React.FC<ChatBoxProps> = ({ isOpen, onClose }) => {
     scrollToBottom();
   }, [messages]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-
+  const handleSendMessage = async (message: string) => {
+    setInput('');
     const userMessage: Message = {
       id: Date.now().toString(),
-      text: input.trim(),
+      text: message,
       sender: 'user',
       timestamp: new Date(),
     };
 
     setMessages(prev => [...prev, userMessage]);
-    setInput('');
     setIsLoading(true);
 
     try {
-      const response = await getChatResponse(userMessage.text, rawData);
+      const response = await getChatResponse(message, rawData);
       
       if (!response) {
         throw new Error('Failed to get response from AI assistant');
@@ -84,7 +81,6 @@ const ChatBox: React.FC<ChatBoxProps> = ({ isOpen, onClose }) => {
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Error getting response:', error);
-      // Add error message to chat
       const errorMessage: Message = {
         id: Date.now().toString(),
         text: 'Sorry, I encountered an error. Please try again.',
@@ -141,6 +137,30 @@ const ChatBox: React.FC<ChatBoxProps> = ({ isOpen, onClose }) => {
       </div>
       
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+        {messages.length === 0 && (
+          <div className="p-4 border rounded-lg bg-gray-50 mt-4">
+            <p className="text-sm text-gray-600 mb-2">Try asking:</p>
+            <div className="space-y-2">
+              <button
+                onClick={() => handleSendMessage("What's my income trend?")}
+                className="w-full text-left p-2 rounded bg-white hover:bg-gray-100 text-sm text-gray-700"
+              >
+                📈 What's my income trend?
+              </button>
+              <button
+                onClick={() => handleSendMessage("What will my cash position be next month?")}
+                className="w-full text-left p-2 rounded bg-white hover:bg-gray-100 text-sm text-gray-700"
+              >
+                💰 What will my cash position be next month?
+              </button>
+            </div>
+            {!uploadLimits.hasPremium && (
+              <p className="text-xs text-gray-500 mt-2">
+                Upgrade to Pro for full historical analysis and predictions
+              </p>
+            )}
+          </div>
+        )}
         {messages.length === 0 ? (
           <div className="text-center text-gray-500 mt-10 p-6 bg-white rounded-xl border border-gray-100 shadow-sm">
             <svg className="w-12 h-12 mx-auto text-primary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -190,7 +210,11 @@ const ChatBox: React.FC<ChatBoxProps> = ({ isOpen, onClose }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="flex items-center p-3 bg-white border-t border-gray-200">
+      <form onSubmit={(e) => {
+        e.preventDefault();
+        if (!input.trim() || isLoading) return;
+        handleSendMessage(input.trim());
+      }} className="flex items-center p-3 bg-white border-t border-gray-200">
         <input
           type="text"
           value={input}

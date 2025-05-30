@@ -41,7 +41,16 @@ const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({ className = '' 
                 <span className="font-bold">Upload limit reached!</span>
               ) : (
                 <>
-                  <span className="font-bold">{remainingUploads}</span> free upload{remainingUploads === 1 ? '' : 's'} remaining this month
+                  {remainingUploads > 0 && (
+                    <div className="bg-blue-50 p-3 rounded-lg mb-4">
+                      <span className="text-sm">
+                        You have <span className="font-bold">{remainingUploads}</span> free upload{remainingUploads === 1 ? '' : 's'} remaining this month
+                        {hasBonusUploads && (
+                          <span className="ml-1">plus <span className="font-bold">{uploadLimits.bonusUploadsAvailable}</span> bonus upload{uploadLimits.bonusUploadsAvailable === 1 ? '' : 's'}</span>
+                        )}
+                      </span>
+                    </div>
+                  )}
                 </>
               )}
               {hasBonusUploads && (
