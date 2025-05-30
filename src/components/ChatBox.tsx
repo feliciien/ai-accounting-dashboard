@@ -210,6 +210,28 @@ const ChatBox: React.FC<ChatBoxProps> = ({ isOpen, onClose }) => {
         <div ref={messagesEndRef} />
       </div>
 
+      {messages.length === 0 && rawData.length === 0 && (
+        <div className="p-4 bg-gray-50 rounded-lg m-4 space-y-3">
+          <p className="text-gray-500 text-sm">Try asking:</p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => handleSendMessage("What’s my income trend?")}
+              className="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-full hover:bg-gray-50 transition-colors"
+            >
+              Income trend
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSendMessage("What will my cash position be next month?")}
+              className="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-full hover:bg-gray-50 transition-colors"
+            >
+              Cash position forecast
+            </button>
+          </div>
+        </div>
+      )}
+
       <form onSubmit={(e) => {
         e.preventDefault();
         if (!input.trim() || isLoading) return;
