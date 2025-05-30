@@ -1,6 +1,6 @@
 import React, { useEffect, Suspense, lazy, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
-import { FinancialProvider } from './context/FinancialContext';
+import { FinancialProvider, useFinancial } from './context/FinancialContext';
 import { AuthProvider } from './context/AuthContext';
 import { FeatureFlagsProvider } from './context/FeatureFlagsContext';
 import { NotificationProvider } from './context/NotificationContext';
@@ -77,6 +77,7 @@ const LoadingFallback = () => (
 const RouteWrapper = () => {
   const location = useLocation();
   const pathname = location.pathname as string;
+  const { uploadLimits: { hasPremium } } = useFinancial();
   const seoConfig = (pathname in routeSEOConfig
     ? routeSEOConfig[pathname as ValidRoutePath]
     : routeSEOConfig['/']);
@@ -110,26 +111,34 @@ const RouteWrapper = () => {
                   <Pricing />
                 </Suspense>
               } />
-              <Route path="/integrations/xero" element={
+              <Route path="/integrations/xero" element={hasPremium ? (
                 <Suspense fallback={<LoadingFallback />}>
                   <XeroIntegration />
                 </Suspense>
-              } />
-              <Route path="/integrations/paypal" element={
+              ) : (
+                <Navigate to="/pricing" replace />
+              )} />
+              <Route path="/integrations/paypal" element={hasPremium ? (
                 <Suspense fallback={<LoadingFallback />}>
                   <PayPalIntegration />
                 </Suspense>
-              } />
-              <Route path="/integrations/stripe" element={
+              ) : (
+                <Navigate to="/pricing" replace />
+              )} />
+              <Route path="/integrations/stripe" element={hasPremium ? (
                 <Suspense fallback={<LoadingFallback />}>
                   <StripeIntegration />
                 </Suspense>
-              } />
-              <Route path="/integrations/bank" element={
+              ) : (
+                <Navigate to="/pricing" replace />
+              )} />
+              <Route path="/integrations/bank" element={hasPremium ? (
                 <Suspense fallback={<LoadingFallback />}>
                   <BankIntegration />
                 </Suspense>
-              } />
+              ) : (
+                <Navigate to="/pricing" replace />
+              )} />
               <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           
