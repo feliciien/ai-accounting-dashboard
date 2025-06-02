@@ -14,7 +14,7 @@ interface ConversionOptimizerProps {
  */
 const ConversionOptimizer: React.FC<ConversionOptimizerProps> = ({ className = '' }) => {
   const navigate = useNavigate();
-  const { currentUser, uploadLimits } = useAuth();
+  const { uploadLimits } = useAuth(); // Removed unused currentUser variable
   const [showPrompt, setShowPrompt] = useState(false);
   const [exitIntent, setExitIntent] = useState(false);
   const [scrollDepth, setScrollDepth] = useState(0);
@@ -64,8 +64,8 @@ const ConversionOptimizer: React.FC<ConversionOptimizerProps> = ({ className = '
   
   // Determine when to show the prompt
   useEffect(() => {
-    // Don't show for premium users
-    if (uploadLimits.hasPremium) {
+    // Don't show for premium users or if previously dismissed
+    if (uploadLimits.hasPremium || localStorage.getItem('premium_prompt_dismissed') === 'true') {
       return;
     }
     
@@ -95,6 +95,8 @@ const ConversionOptimizer: React.FC<ConversionOptimizerProps> = ({ className = '
   
   const handleDismiss = () => {
     setShowPrompt(false);
+    // Store dismissal in localStorage to prevent showing again in the same session
+    localStorage.setItem('premium_prompt_dismissed', 'true');
     trackEvent('conversion_prompt_dismissed', { page: window.location.pathname });
   };
   

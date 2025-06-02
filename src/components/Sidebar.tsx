@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useIntegration } from '../context/IntegrationContext';
-import NotificationBell from './NotificationBell';
-import { useNotification } from '../context/NotificationContext';
 
 interface SidebarProps {
   className?: string;
@@ -31,9 +29,9 @@ const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
       {/* Mobile menu button */}
       <button
         onClick={toggleMobileMenu}
-        className="md:hidden fixed top-4 left-4 z-20 p-2 rounded-md bg-gray-900 text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-white transition-colors duration-200"
+        className="md:hidden fixed top-3 left-3 z-30 p-2 rounded-md bg-gray-900 text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-white transition-colors duration-200 shadow-lg"
       >
-        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -46,15 +44,22 @@ const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
       {/* Sidebar */}
       <aside 
         className={`
-          fixed md:sticky top-0 inset-y-0 left-0 z-10
+          fixed md:sticky top-0 inset-y-0 left-0 z-20
           transform md:transform-none
           ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
           transition-all duration-300 ease-in-out
-          p-4 bg-gray-900 text-white h-screen w-64 md:w-72 lg:w-80
-          overflow-y-auto
+          p-3 sm:p-4 bg-gray-900 text-white h-screen w-[85vw] sm:w-64 md:w-72 lg:w-80
+          overflow-y-auto shadow-xl
           ${className}
         `}
       >
+        {/* Mobile overlay */}
+        {isMobileMenuOpen && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-10 md:hidden" 
+            onClick={toggleMobileMenu}
+          />
+        )}
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-lg md:text-xl font-bold flex items-center">
             <svg className="w-6 h-6 mr-2 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">

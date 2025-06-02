@@ -2,31 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { 
   PayPalScriptProvider, 
   PayPalButtons,
-  ReactPayPalScriptOptions,
-  PayPalButtonsComponentProps,
   FUNDING
 } from '@paypal/react-paypal-js';
 import { useAuth } from '../../context/AuthContext';
 import { updateUserPremiumStatus, PaymentDetails } from '../../services/userService';
 import { verifyPayPalConfig, PayPalConfigStatus } from '../../lib/paypalConfigVerifier';
-import { ArrowRightIcon, CheckIcon, ShieldCheckIcon } from '@heroicons/react/solid';
+import { CheckIcon, ShieldCheckIcon } from '@heroicons/react/solid';
 
 // Define the types that are missing from the library
-type OrderResponseBody = {
-  id: string;
-  status: string;
-  payer: {
-    payer_id: string;
-  };
-  purchase_units: Array<{
-    amount: {
-      value: string;
-      currency_code: string;
-    };
-  }>;
-  create_time?: string;
-  update_time?: string;
-};
+// Removed unused OrderResponseBody type
 
 interface PaywallModalProps {
   isOpen: boolean;
@@ -84,44 +68,7 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose }) => {
   
   if (!isOpen) return null;
   
-  const handlePaymentSuccess = async (details: OrderResponseBody, planType: PlanType) => {
-    setLoading(true);
-    setError('');
-    
-    try {
-      if (!currentUser) {
-        throw new Error('You must be logged in to complete this purchase');
-      }
-      
-      // Create payment details object
-      const paymentDetails: PaymentDetails = {
-        transactionId: details.id,
-        payerId: details.payer.payer_id,
-        amount: String(plans[planType].price),
-        currency: details.purchase_units[0].amount.currency_code || 'USD',
-        status: details.status,
-        purchaseDate: new Date().toISOString(),
-        planType: planType,
-        subscriptionId: details.id,
-        subscriptionStatus: 'ACTIVE',
-        planId: plans[planType].planId
-      };
-      
-      // Update user's premium status using the service
-      await updateUserPremiumStatus(currentUser.uid, paymentDetails);
-      
-      // Update local state
-      await updateUploadLimits({ hasPremium: true });
-      
-      setSuccess(true);
-      console.log(`Premium ${planType} subscription activated successfully`);
-    } catch (err: any) {
-      console.error('Payment processing error:', err);
-      setError(err.message || 'Failed to process payment');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Remove unused handlePaymentSuccess function
   
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -138,8 +85,9 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose }) => {
               </h2>
               <button 
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-500"
+                className="text-gray-400 hover:text-gray-500 p-2"
                 disabled={loading}
+                aria-label="Close modal"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -167,55 +115,20 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose }) => {
               </div>
             ) : (
               <>
-                <div className="mb-6 p-5 bg-gradient-to-br from-blue-50 to-primary-50 rounded-lg border border-primary-200 shadow-sm">
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-lg font-bold text-gray-900">Premium Benefits</h3>
-                    <span className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full">MOST POPULAR</span>
+                {/* Introduction section - Simplified with clear CTA */}
+                <div className="mb-6 text-center">
+                  <p className="text-gray-700 text-lg mb-4">Get unlimited uploads and AI-powered insights</p>
+                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 mb-4">
+                    <p className="font-medium text-blue-800">Select a plan below to upgrade your account</p>
                   </div>
-                  <ul className="space-y-3">
-                    <li className="flex items-start">
-                      <CheckIcon className="h-5 w-5 text-primary-600 mr-2 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <span className="text-gray-800 font-medium">Unlimited document uploads</span>
-                        <p className="text-xs text-gray-600 mt-0.5">No more monthly limits - upload as many documents as you need</p>
-                      </div>
-                    </li>
-                    <li className="flex items-start">
-                      <CheckIcon className="h-5 w-5 text-primary-600 mr-2 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <span className="text-gray-800 font-medium">Advanced financial insights</span>
-                        <p className="text-xs text-gray-600 mt-0.5">Detailed analytics and AI-powered recommendations</p>
-                      </div>
-                    </li>
-                    <li className="flex items-start">
-                      <CheckIcon className="h-5 w-5 text-primary-600 mr-2 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <span className="text-gray-800 font-medium">Export features</span>
-                        <p className="text-xs text-gray-600 mt-0.5">Export your data in multiple formats (PDF, CSV, Excel)</p>
-                      </div>
-                    </li>
-                    <li className="flex items-start">
-                      <CheckIcon className="h-5 w-5 text-primary-600 mr-2 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <span className="text-gray-800 font-medium">Bank integration</span>
-                        <p className="text-xs text-gray-600 mt-0.5">Connect directly with your bank accounts</p>
-                      </div>
-                    </li>
-                    <li className="flex items-start">
-                      <CheckIcon className="h-5 w-5 text-primary-600 mr-2 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <span className="text-gray-800 font-medium">Priority customer support</span>
-                        <p className="text-xs text-gray-600 mt-0.5">Get help when you need it with priority response times</p>
-                      </div>
-                    </li>
-                  </ul>
                 </div>
                 
+                {/* Simplified plan selection */}
                 <div className="mb-6">
-                  <div className="flex justify-center space-x-4 mb-4">
+                  <div className="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4 mb-4">
                     <button
                       onClick={() => setSelectedPlan('monthly')}
-                      className={`flex-1 py-2 px-4 rounded-lg border ${selectedPlan === 'monthly' 
+                      className={`flex-1 py-3 px-4 rounded-lg border ${selectedPlan === 'monthly' 
                         ? 'bg-primary-50 border-primary-300 ring-2 ring-primary-200' 
                         : 'bg-white border-gray-300 hover:bg-gray-50'}`}
                     >
@@ -227,7 +140,7 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose }) => {
                     
                     <button
                       onClick={() => setSelectedPlan('annual')}
-                      className={`flex-1 py-2 px-4 rounded-lg border relative ${selectedPlan === 'annual' 
+                      className={`flex-1 py-3 px-4 rounded-lg border relative ${selectedPlan === 'annual' 
                         ? 'bg-primary-50 border-primary-300 ring-2 ring-primary-200' 
                         : 'bg-white border-gray-300 hover:bg-gray-50'}`}
                     >
@@ -262,6 +175,25 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose }) => {
                       </div>
                     )}
                   </div>
+                </div>
+                
+                {/* Top benefits - simplified */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Top benefits:</h3>
+                  <ul className="space-y-2">
+                    <li className="flex items-center">
+                      <CheckIcon className="h-4 w-4 text-primary-600 mr-2 flex-shrink-0" />
+                      <span className="text-sm text-gray-700">Unlimited document uploads</span>
+                    </li>
+                    <li className="flex items-center">
+                      <CheckIcon className="h-4 w-4 text-primary-600 mr-2 flex-shrink-0" />
+                      <span className="text-sm text-gray-700">Advanced financial insights</span>
+                    </li>
+                    <li className="flex items-center">
+                      <CheckIcon className="h-4 w-4 text-primary-600 mr-2 flex-shrink-0" />
+                      <span className="text-sm text-gray-700">Priority customer support</span>
+                    </li>
+                  </ul>
                 </div>
                 
                 <div className="mt-8">
@@ -306,19 +238,7 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose }) => {
                           // Return a Promise to satisfy the PayPalButtonOnApprove type
                           return new Promise<void>((resolve, reject) => {
                             // Create a custom OrderResponseBody from subscription data
-                            const subscriptionDetails: OrderResponseBody = {
-                              id: data.subscriptionID || 'unknown-subscription',
-                              status: 'COMPLETED',
-                              payer: {
-                                payer_id: data.payerID || 'unknown'
-                              },
-                              purchase_units: [{
-                                amount: {
-                                  value: String(plans[selectedPlan].price),
-                                  currency_code: 'USD'
-                                }
-                              }]
-                            };
+                            // Remove unused subscriptionDetails variable
                             
                             // Add subscription-specific data to payment details
                             const paymentDetails: PaymentDetails = {

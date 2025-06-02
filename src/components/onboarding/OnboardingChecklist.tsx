@@ -108,24 +108,24 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = ({ className = '
   const completionPercentage = Math.round((completedItems / checklist.length) * 100);
   
   return (
-    <div className={`bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 ${className}`}>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-gray-900">Getting Started</h2>
-        <div className="text-sm font-medium text-gray-500">
+    <div className={`bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-4 md:p-6 ${className}`}>
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <h2 className="text-base sm:text-lg font-semibold text-gray-900">Getting Started</h2>
+        <div className="text-xs sm:text-sm font-medium text-gray-500">
           {completionPercentage}% Complete
         </div>
       </div>
       
       {/* Progress bar */}
-      <div className="w-full bg-gray-100 rounded-full h-2.5 mb-6">
+      <div className="w-full bg-gray-100 rounded-full h-2 sm:h-2.5 mb-4 sm:mb-6">
         <div 
-          className="bg-primary-600 h-2.5 rounded-full transition-all duration-500 ease-out" 
+          className="bg-primary-600 h-2 sm:h-2.5 rounded-full transition-all duration-500 ease-out" 
           style={{ width: `${completionPercentage}%` }}
         ></div>
       </div>
       
       {/* Checklist items */}
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {checklist.map((item) => (
           <div key={item.id} className="flex items-start">
             <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center mt-0.5 ${item.completed ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
@@ -160,8 +160,8 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = ({ className = '
       
       {/* Trial banner */}
       {trialInfo.isActive && (
-        <div className="mt-6 bg-primary-50 border border-primary-100 rounded-lg p-4">
-          <div className="flex items-center justify-between">
+        <div className="mt-4 sm:mt-6 bg-primary-50 border border-primary-100 rounded-lg p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
             <div>
               <h3 className="text-sm font-medium text-primary-800">Trial Period</h3>
               <p className="text-xs text-primary-600 mt-1">
@@ -172,7 +172,7 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = ({ className = '
             </div>
             <Link 
               to="/pricing" 
-              className="text-xs font-medium px-3 py-1.5 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors"
+              className="text-xs font-medium px-3 py-1.5 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors w-full sm:w-auto text-center"
             >
               Upgrade Now
             </Link>

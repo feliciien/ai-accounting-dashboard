@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef } from 'react';
 import FileUpload from './FileUpload';
 import AiRecommendations from './AiRecommendations';
 import { useFinancial } from '../context/FinancialContext';
@@ -30,7 +30,7 @@ const Dashboard: React.FC = () => {
   const { chartData, rawData } = useFinancial();
   const { currentUser, logout, uploadLimits } = useAuth();
   const { addNotification } = useNotification();
-  const { favorites, achievements, tutorials, updateAchievementProgress, completeTutorial } = useUserPreferences();
+  const { achievements, tutorials, updateAchievementProgress, completeTutorial } = useUserPreferences();
   const [activeTab, setActiveTab] = React.useState<'overview' | 'tasks' | 'insights'>('overview');
   const [isChatOpen, setIsChatOpen] = React.useState(false);
   const [showAuthModal, setShowAuthModal] = React.useState(false);
@@ -38,10 +38,31 @@ const Dashboard: React.FC = () => {
   const [trialInfo, setTrialInfo] = React.useState<TrialInfo>(conversionTracking.getTrialInfo());
   const [sessionStartTime] = React.useState<number>(Date.now());
   const [hasInteracted, setHasInteracted] = React.useState(false);
-  const [lastLoginDate, setLastLoginDate] = React.useState<string | null>(null);
+  // We'll use a ref instead of state since we don't need to trigger re-renders
+  const lastLoginDateRef = React.useRef<string | null>(null);
   const [loginStreak, setLoginStreak] = React.useState<number>(0);
   const [showWelcomeBack, setShowWelcomeBack] = React.useState<boolean>(false);
   const visitTracked = useRef<boolean>(false);
+  const [showGettingStarted, setShowGettingStarted] = React.useState<boolean>(
+    !localStorage.getItem('onboardingCompleted')
+  );
+  // Define interface for onboarding progress
+  interface OnboardingProgress {
+    uploadViewed: boolean;
+    connectViewed: boolean;
+    insightsViewed: boolean;
+  }
+
+  // Track onboarding progress for first-time users
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [onboardingProgress, setOnboardingProgress] = React.useState<OnboardingProgress>(() => {
+    const savedProgress = localStorage.getItem('onboardingProgress');
+    return savedProgress ? JSON.parse(savedProgress) : {
+      uploadViewed: false,
+      connectViewed: false,
+      insightsViewed: false
+    };
+  });
 
   // Handle user interaction
   React.useEffect(() => {
@@ -80,7 +101,7 @@ const Dashboard: React.FC = () => {
         // Update achievements in user preferences
         const visitAchievement = achievements.find(a => a.id === 'visits-5');
         if (visitAchievement && !visitAchievement.completed) {
-          updateAchievementProgress('visits-5', 100); // 100% progress means completed
+          updateAchievementProgress('visits-5', 100);
         }
       } else if (totalVisits === 10) {
         addNotification('success', '🏆 Achievement Unlocked: 10 Visits! You\'re a dedicated user!');
@@ -88,7 +109,7 @@ const Dashboard: React.FC = () => {
         // Update achievements in user preferences
         const visitAchievement = achievements.find(a => a.id === 'visits-10');
         if (visitAchievement && !visitAchievement.completed) {
-          updateAchievementProgress('visits-10', 100); // 100% progress means completed
+          updateAchievementProgress('visits-10', 100);
         }
       } else if (totalVisits === 25) {
         addNotification('success', '🏆 Achievement Unlocked: 25 Visits! You\'re a financial pro!');
@@ -96,7 +117,7 @@ const Dashboard: React.FC = () => {
         // Update achievements in user preferences
         const visitAchievement = achievements.find(a => a.id === 'visits-25');
         if (visitAchievement && !visitAchievement.completed) {
-          updateAchievementProgress('visits-25', 100); // 100% progress means completed
+          updateAchievementProgress('visits-25', 100);
         }
       }
       
@@ -112,8 +133,7 @@ const Dashboard: React.FC = () => {
       
       // Track time spent in real-time (update every 10 seconds)
       timeSpentInterval = setInterval(() => {
-        const currentTime = new Date();
-        const sessionTimeInSeconds = Math.floor((currentTime.getTime() - startTime.getTime()) / 1000);
+        // Time tracking removed as it was unused
         
         // Update total time spent
         const totalTimeSpent = parseInt(localStorage.getItem(`totalTimeSpent_${currentUser.uid}`) || '0') + 10;
@@ -130,7 +150,7 @@ const Dashboard: React.FC = () => {
           // Update achievements in user preferences
           const timeAchievement = achievements.find(a => a.id === 'time-30');
           if (timeAchievement && !timeAchievement.completed) {
-            updateAchievementProgress('time-30', 100); // 100% progress means completed
+            updateAchievementProgress('time-30', 100);
           }
         } else if (totalMinutes === 60 && !localStorage.getItem(`achievement_time_60_${currentUser.uid}`)) {
           localStorage.setItem(`achievement_time_60_${currentUser.uid}`, 'true');
@@ -140,7 +160,7 @@ const Dashboard: React.FC = () => {
           // Update achievements in user preferences
           const timeAchievement = achievements.find(a => a.id === 'time-60');
           if (timeAchievement && !timeAchievement.completed) {
-            updateAchievementProgress('time-60', 100); // 100% progress means completed
+            updateAchievementProgress('time-60', 100);
           }
         }
       }, 10000); // Every 10 seconds
@@ -181,7 +201,7 @@ const Dashboard: React.FC = () => {
       let newStreak = 1;
       
       if (storedLastLogin) {
-        setLastLoginDate(storedLastLogin);
+        lastLoginDateRef.current = storedLastLogin;
         
         // If last login was yesterday, increment streak
         if (storedLastLogin === yesterdayStr) {
@@ -280,11 +300,9 @@ const Dashboard: React.FC = () => {
       
       // Get stored activity data
       const totalVisitsKey = `totalVisits_${currentUser.uid}`;
-      const totalTimeSpentKey = `totalTimeSpent_${currentUser.uid}`;
       const lastMilestoneKey = `lastMilestone_${currentUser.uid}`;
       
       const storedVisits = parseInt(localStorage.getItem(totalVisitsKey) || '0');
-      const storedTimeSpent = parseInt(localStorage.getItem(totalTimeSpentKey) || '0'); // in seconds
       const lastMilestone = parseInt(localStorage.getItem(lastMilestoneKey) || '0');
       
       // Update visits count
@@ -546,7 +564,7 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6">
+      <main className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-3 md:py-6">
         {/* Auth Modal */}
         {showAuthModal && (
           <AuthModal 
@@ -556,21 +574,219 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
           />
         )}
         
-        {/* Anomaly Alerts - Always visible */}
-        {alerts.length > 0 && (
+        {/* First-time User Experience - Only shown if user hasn't completed onboarding */}
+        {showGettingStarted && (
+          <div className="bg-white rounded-xl shadow-lg border border-primary-100 mb-6 overflow-hidden relative">
+            {/* Close button - More visible and positioned at the top right */}
+            <button 
+              onClick={() => {
+                localStorage.setItem('onboardingCompleted', 'true');
+                setShowGettingStarted(false);
+              }} 
+              className="absolute top-3 right-3 z-10 bg-white rounded-full p-1 shadow-md hover:bg-gray-100 transition-colors"
+              aria-label="Close guide"
+            >
+              <svg className="h-6 w-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            
+            <div className="bg-gradient-to-r from-primary-600 to-blue-600 px-4 sm:px-6 py-3 sm:py-4">
+              <h2 className="text-xl sm:text-2xl font-bold text-white">Welcome to AI Accounting Dashboard</h2>
+              <p className="text-sm sm:text-base text-white opacity-90 mt-1">
+                Let's get you started in just a few simple steps
+              </p>
+            </div>
+            
+            <div className="p-4 sm:p-6">
+              {/* Simplified steps with clearer visual hierarchy */}
+              <div className="space-y-6">
+                {/* Step 1: Upload Data - The most important first step */}
+                <div className="flex items-start bg-blue-50 p-4 rounded-lg border border-blue-100">
+                  <div className="flex-shrink-0 bg-primary-100 rounded-full p-2 mr-4">
+                    <span className="flex items-center justify-center h-8 w-8 rounded-full bg-primary-600 text-white font-bold text-lg">1</span>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-1">Upload Your Financial Data</h3>
+                    <p className="text-sm text-gray-600 mb-3">Start by uploading a CSV, Excel, or PDF file with your financial records.</p>
+                    <a 
+                      href="#file-upload" 
+                      className="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
+                      onClick={() => {
+                        // Mark this step as viewed
+                        setOnboardingProgress((prev: OnboardingProgress) => {
+                          const newProgress = {...prev, uploadViewed: true};
+                          localStorage.setItem('onboardingProgress', JSON.stringify(newProgress));
+                          return newProgress;
+                        });
+                      }}
+                    >
+                      <svg className="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                      Upload Now
+                    </a>
+                  </div>
+                </div>
+                
+                {/* Step 2: Connect Account */}
+                <div className="flex items-start bg-white p-4 rounded-lg border border-gray-200">
+                  <div className="flex-shrink-0 bg-gray-100 rounded-full p-2 mr-4">
+                    <span className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-400 text-white font-bold text-lg">2</span>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-1">Connect Your Accounts</h3>
+                    <p className="text-sm text-gray-600 mb-3">Integrate with Xero, PayPal, or your bank for automatic data import.</p>
+                    <Link 
+                      to="/integrations/bank" 
+                      className="inline-flex items-center px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
+                      onClick={() => {
+                        // Mark this step as viewed
+                        setOnboardingProgress((prev: OnboardingProgress) => {
+                          const newProgress = {...prev, connectViewed: true};
+                          localStorage.setItem('onboardingProgress', JSON.stringify(newProgress));
+                          return newProgress;
+                        });
+                      }}
+                    >
+                      <svg className="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      Connect Account
+                    </Link>
+                  </div>
+                </div>
+                
+                {/* Step 3: View Insights */}
+                <div className="flex items-start bg-white p-4 rounded-lg border border-gray-200">
+                  <div className="flex-shrink-0 bg-gray-100 rounded-full p-2 mr-4">
+                    <span className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-400 text-white font-bold text-lg">3</span>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-1">Explore AI Insights</h3>
+                    <p className="text-sm text-gray-600 mb-3">After uploading data, check out the AI-powered insights about your finances.</p>
+                    <button 
+                      className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors ${rawData.length === 0 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}`}
+                      disabled={rawData.length === 0}
+                      onClick={() => {
+                        if (rawData.length > 0) {
+                          setActiveTab('insights');
+                          // Mark this step as viewed
+                          setOnboardingProgress((prev: OnboardingProgress) => {
+                            const newProgress = {...prev, insightsViewed: true};
+                            localStorage.setItem('onboardingProgress', JSON.stringify(newProgress));
+                            return newProgress;
+                          });
+                          localStorage.setItem('insights_viewed', 'true');
+                        }
+                      }}
+                    >
+                      <svg className="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                      </svg>
+                      {rawData.length === 0 ? 'View Insights (Upload Data First)' : 'View Insights'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-6 pt-4 border-t border-gray-100 flex justify-between items-center">
+                <div className="flex items-center">
+                  <svg className="h-5 w-5 text-primary-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-sm text-gray-600">You can always access this guide from the help menu</p>
+                </div>
+                <button 
+                  onClick={() => {
+                    localStorage.setItem('onboardingCompleted', 'true');
+                    setShowGettingStarted(false);
+                  }} 
+                  className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors"
+                >
+                  Got it, let's go!
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Introduction Section - Only shown after onboarding is completed */}
+        {!localStorage.getItem('hideIntro') && !showGettingStarted && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 mb-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 mb-2">Welcome to AI Accounting Dashboard</h2>
+                <p className="text-gray-600 mb-4">
+                  Transform your financial management with our AI-powered platform. Upload your financial data, 
+                  connect your accounts, and get instant insights and forecasts powered by artificial intelligence.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0 h-10 w-10 rounded-md bg-primary-100 flex items-center justify-center text-primary-600">
+                      <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div className="ml-4">
+                      <h3 className="text-sm font-medium text-gray-900">Data Analysis</h3>
+                      <p className="mt-1 text-sm text-gray-500">Upload financial data for instant AI analysis</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0 h-10 w-10 rounded-md bg-green-100 flex items-center justify-center text-green-600">
+                      <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                      </svg>
+                    </div>
+                    <div className="ml-4">
+                      <h3 className="text-sm font-medium text-gray-900">Forecasting</h3>
+                      <p className="mt-1 text-sm text-gray-500">Predict future cash flow and financial trends</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0 h-10 w-10 rounded-md bg-purple-100 flex items-center justify-center text-purple-600">
+                      <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                    </div>
+                    <div className="ml-4">
+                      <h3 className="text-sm font-medium text-gray-900">Integrations</h3>
+                      <p className="mt-1 text-sm text-gray-500">Connect with Xero, PayPal, Stripe and more</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <button 
+                onClick={() => localStorage.setItem('hideIntro', 'true')} 
+                className="text-gray-400 hover:text-gray-600 p-1"
+                aria-label="Close introduction"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {/* Anomaly Alerts - Only shown after onboarding or if alerts exist */}
+        {(localStorage.getItem('onboardingCompleted') || alerts.length > 0) && (
           <div className="mb-6">
             <AlertBanner alerts={alerts} />
           </div>
         )}
         
-        {/* Overview Tab */}
+        {/* Overview Tab - Only fully shown after onboarding is completed */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            {/* Getting Started Checklist */}
-            <OnboardingChecklist className="mb-6" />
+            {/* Getting Started Checklist - Only shown after onboarding or if user has data */}
+            {(localStorage.getItem('onboardingCompleted') || rawData.length > 0) && (
+              <OnboardingChecklist className="mb-6" />
+            )}
             
-            {/* User Activity Summary - Only for logged in users */}
-            {currentUser && (
+            {/* User Activity Summary - Only for logged in users and after onboarding or if user has data */}
+            {currentUser && (localStorage.getItem('onboardingCompleted') || rawData.length > 0) && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 mb-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-semibold text-gray-900">Your Activity</h2>
@@ -649,8 +865,8 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
               </div>
             )}
             
-            {/* Enhanced Trial Banner with Countdown */}
-            {trialInfo.isActive && trialInfo.daysRemaining <= 7 && (
+            {/* Enhanced Trial Banner with Countdown - Only shown after onboarding is completed or if user has data */}
+            {(localStorage.getItem('onboardingCompleted') || rawData.length > 0) && trialInfo.isActive && trialInfo.daysRemaining <= 7 && (
               <div className={`${trialInfo.daysRemaining <= 2 ? 'bg-red-50 border-red-100' : 'bg-yellow-50 border-yellow-100'} border rounded-xl p-5 mb-6 shadow-md transition-all duration-300 transform hover:scale-[1.01]`}>
                 <div className="flex flex-col md:flex-row md:items-center">
                   <div className="flex items-center mb-3 md:mb-0">
@@ -901,7 +1117,7 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
           </div>
         )}
         
-        {/* Insights Tab */}
+        {/* Insights Tab - Only fully shown after onboarding is completed or if user has data */}
         {activeTab === 'insights' && (
           <div className="space-y-6">
             {/* AI Suggestions */}

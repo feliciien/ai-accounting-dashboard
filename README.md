@@ -1,13 +1,36 @@
 # AI Accounting Dashboard
 
-An intelligent financial management dashboard powered by AI.
+## Overview
 
-## Xero Integration
+AI Accounting Dashboard is a powerful financial management tool that leverages artificial intelligence to provide real-time insights, forecasting, and optimization for your business finances. The platform helps businesses automate financial data processing, gain actionable insights, and make data-driven decisions.
 
-This application supports integration with Xero for automated accounting data synchronization. See the following guides for setup:
+### Key Features
+
+- **AI-Powered Financial Analysis**: Get intelligent insights and recommendations based on your financial data
+- **Multi-format Data Import**: Upload financial data from CSV, Excel, or PDF files
+- **Integration Ecosystem**: Connect with Xero, PayPal, Stripe, and banking platforms
+- **Cash Flow Forecasting**: Predict future cash positions with AI-driven forecasting
+- **Anomaly Detection**: Automatically identify unusual transactions and potential issues
+- **Interactive Chat Assistant**: Ask questions about your finances in natural language
+- **Mobile-Responsive Design**: Access your financial dashboard from any device
+
+## Integrations
+
+This application supports integration with various financial platforms:
 
 - [Xero Integration Setup Guide](XERO_INTEGRATION_SETUP.md) - How to connect your Xero account
 - [Xero Webhook Setup Guide](XERO_WEBHOOK_SETUP.md) - How to set up real-time data synchronization with webhooks
+- [PayPal Integration Setup Guide](PAYPAL_INTEGRATION_SETUP.md) - Connect your PayPal account
+- [Stripe Integration Setup Guide](STRIPE_INTEGRATION_SETUP.md) - Connect your Stripe account
+
+## Getting Started
+
+To get started with the AI Accounting Dashboard:
+
+1. Create an account or log in
+2. Connect your financial accounts or upload financial data
+3. Explore the dashboard to view insights and recommendations
+4. Use the AI assistant to ask questions about your finances
 
 ## Available Scripts
 
@@ -35,16 +58,6 @@ The build is minified and the filenames include the hashes.\
 Your app is ready to be deployed!
 
 See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
 
 ## Learn More
 

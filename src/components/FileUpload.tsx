@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
@@ -48,6 +48,8 @@ const FileUpload: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showPaywallModal, setShowPaywallModal] = useState(false);
+  // Using a ref instead of state since we don't need to trigger re-renders
+  const uploadCompletedRef = useRef(false);
   
   const processFile = useCallback(async (file: File): Promise<FinancialRecord[]> => {
     const fileType = file.name.split('.').pop()?.toLowerCase();
@@ -390,6 +392,7 @@ const FileUpload: React.FC = () => {
     const eligibility = await checkUploadEligibility();
     if (!eligibility.canUpload) {
       setShowPaywallModal(true);
+      uploadCompletedRef.current = false;
       return;
     }
     
@@ -412,6 +415,7 @@ const FileUpload: React.FC = () => {
       if (allData.length > 0) {
         setPreviewData(allData);
         setFinancialData(allData);
+        uploadCompletedRef.current = true;
         
         await updateUploadLimits({
           freeUploadUsed: true,
@@ -439,10 +443,13 @@ const FileUpload: React.FC = () => {
   });
   
   const downloadSampleCSV = useCallback(() => {
-    const sampleData = [
-      { date: '2023-01-01', amount: 1000, category: 'Sales', description: 'Monthly revenue' },
-      { date: '2023-01-02', amount: -50, category: 'Office Supplies', description: 'Office materials' },
-      { date: '2023-01-03', amount: 500, category: 'Consulting', description: 'Consulting fees' }
+    const sampleData: FinancialRecord[] = [
+      // Current month transactions
+      { date: new Date().toISOString().split('T')[0], amount: 15000, category: 'Revenue', description: 'Monthly subscriptions', type: 'income' },
+      { date: new Date().toISOString().split('T')[0], amount: -5000, category: 'Expenses', description: 'Office rent', type: 'expense' },
+      { date: new Date().toISOString().split('T')[0], amount: -2000, category: 'Expenses', description: 'Team lunch', type: 'expense' },
+      { date: new Date().toISOString().split('T')[0], amount: 8000, category: 'Revenue', description: 'Consulting fees', type: 'income' },
+      { date: new Date().toISOString().split('T')[0], amount: -1500, category: 'Expenses', description: 'Software subscriptions', type: 'expense' }
     ];
     
     const csv = Papa.unparse(sampleData);
@@ -484,7 +491,7 @@ const FileUpload: React.FC = () => {
           <div className="mb-4 md:mb-0">
             <h2 className="text-xl font-semibold text-gray-900">Upload Financial Data</h2>
             <p className="text-sm text-gray-600 mt-1">
-              Import your financial records for analysis and forecasting
+              "⚡️ See your 90-day cash flow forecast in seconds. No spreadsheet needed."
             </p>
           </div>
           <button
@@ -498,7 +505,7 @@ const FileUpload: React.FC = () => {
         <div
           {...getRootProps()}
           className={`
-            border-2 border-dashed rounded-xl p-8 transition-all duration-300
+            border-2 border-dashed rounded-xl p-4 sm:p-6 md:p-8 transition-all duration-300
             ${isDragActive ? 'border-primary-400 bg-primary-50' : 'border-gray-300 hover:border-primary-300 hover:bg-gray-50'}
           `}
         >
@@ -506,7 +513,7 @@ const FileUpload: React.FC = () => {
           <div className="text-center">
             <div className="flex flex-col items-center justify-center">
               <svg
-                className={`h-12 w-12 mb-4 ${isDragActive ? 'text-primary-500' : 'text-gray-400'}`}
+                className={`h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 mb-3 md:mb-4 ${isDragActive ? 'text-primary-500' : 'text-gray-400'}`}
                 stroke="currentColor"
                 fill="none"
                 viewBox="0 0 48 48"
@@ -521,16 +528,16 @@ const FileUpload: React.FC = () => {
               </svg>
             </div>
             
-            <p className="text-lg font-medium text-gray-700 mb-1">
+            <p className="text-base sm:text-lg font-medium text-gray-700 mb-1">
               {isDragActive ? "Drop your files here" : "Upload your financial data"}
             </p>
-            <p className="text-sm text-gray-500">
+            <p className="text-xs sm:text-sm text-gray-500">
               Drag and drop files, or click to select files
             </p>
             
-            <div className="flex flex-wrap justify-center gap-2 mt-4">
+            <div className="flex flex-wrap justify-center gap-1 sm:gap-2 mt-3 sm:mt-4">
               {Object.entries(SUPPORTED_FORMATS).map(([format, extensions]) => (
-                <div key={format} className="px-2.5 py-1 bg-white border border-gray-200 rounded-full text-xs font-medium text-gray-700">
+                <div key={format} className="px-2 sm:px-2.5 py-0.5 sm:py-1 bg-white border border-gray-200 rounded-full text-xs font-medium text-gray-700">
                   <span className="font-medium">{format}</span>
                   <span className="ml-1">({extensions.join(', ')})</span>
                 </div>
