@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Button from './common/Button';
@@ -88,6 +88,26 @@ const ConversionOptimizer: React.FC<ConversionOptimizerProps> = ({ className = '
     }
   }, [timeOnPage, scrollDepth, exitIntent, showPrompt, uploadLimits.hasPremium]);
   
+  // Reference to the popup element for click-outside detection
+  const popupRef = useRef<HTMLDivElement>(null);
+  
+  // Handle click outside to close the popup
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
+        handleDismiss();
+      }
+    };
+    
+    if (showPrompt) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showPrompt]);
+  
   const handleUpgradeClick = () => {
     trackEvent('conversion_prompt_clicked', { page: window.location.pathname });
     navigate('/pricing');
@@ -106,13 +126,21 @@ const ConversionOptimizer: React.FC<ConversionOptimizerProps> = ({ className = '
   }
   
   return (
-    <div className={`fixed bottom-4 right-4 z-50 max-w-sm ${className}`}>
-      <div className="bg-white rounded-lg shadow-xl overflow-hidden border border-primary-100 animate-fade-in-up">
-        <div className="bg-primary-600 px-4 py-2 flex justify-between items-center">
-          <h3 className="text-white font-medium">Unlock Premium Features</h3>
+    <div className={`fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-50 max-w-xs sm:max-w-sm ${className}`}>
+      <div 
+        ref={popupRef}
+        className="bg-white rounded-lg shadow-xl overflow-hidden border border-primary-100 animate-fade-in-up transition-all duration-300 hover:shadow-2xl transform hover:-translate-y-1"
+      >
+        <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-4 py-3 flex justify-between items-center">
+          <h3 className="text-white font-medium flex items-center">
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            Unlock Premium Features
+          </h3>
           <button 
             onClick={handleDismiss}
-            className="text-white hover:text-primary-100"
+            className="text-white hover:text-primary-100 transition-all duration-200 p-1.5 rounded-full hover:bg-primary-500 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 transform hover:rotate-90"
             aria-label="Dismiss"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -120,21 +148,22 @@ const ConversionOptimizer: React.FC<ConversionOptimizerProps> = ({ className = '
             </svg>
           </button>
         </div>
-        <div className="p-4">
-          <p className="text-gray-700 mb-3">
+        <div className="p-4 sm:p-5">
+          <p className="text-gray-700 mb-4 text-sm sm:text-base">
             {uploadLimits.freeUploadUsed && !uploadLimits.hasPremium && uploadLimits.bonusUploadsAvailable === 0
               ? "You've reached your upload limit. Upgrade now to continue using all features."
               : "Upgrade to Pro for unlimited uploads and advanced AI insights."}
           </p>
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
             <Button
               variant="primary"
               size="sm"
               onClick={handleUpgradeClick}
+              className="transition-all duration-200 hover:scale-105 hover:shadow-md w-full sm:w-auto"
             >
               Upgrade Now
             </Button>
-            <span className="text-gray-500 text-sm">Starting at $9.99/mo</span>
+            <span className="text-gray-500 text-xs sm:text-sm">Starting at $9.99/mo</span>
           </div>
         </div>
       </div>
