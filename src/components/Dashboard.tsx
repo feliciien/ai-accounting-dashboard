@@ -24,6 +24,7 @@ import SubscriptionCTA from './SubscriptionCTA';
 import ReferralSystem from './ReferralSystem';
 import { useNotification } from '../context/NotificationContext';
 import { useUserPreferences } from '../context/UserPreferencesContext';
+import DarkModeToggle from './DarkModeToggle';
 
 
 const Dashboard: React.FC = () => {
@@ -433,7 +434,7 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
 
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50 relative">
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50 dark:bg-gray-900 dark:text-gray-100 relative">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       <div className="flex-1 w-full overflow-x-hidden">
         {/* Enhanced Subscription Banner - only shown to non-premium users */}
@@ -543,6 +544,9 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
                   </span>
                 </button>
               </nav>
+              <div className="ml-4">
+                <DarkModeToggle />
+              </div>
               
               {/* Authentication UI - Enhanced for Mobile */}
               {currentUser ? (
