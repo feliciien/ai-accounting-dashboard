@@ -36,10 +36,6 @@ let db: Firestore | undefined;
 let analytics: Analytics | undefined;
 let googleProvider: GoogleAuthProvider | undefined;
 
-// Track initialization status
-let isFirebaseInitialized = false;
-let isFirestoreInitialized = false;
-
 try {
   // Initialize Firebase app
   app = initializeApp(firebaseConfig);
