@@ -23,18 +23,25 @@ const openai = (() => {
       chat: {
         completions: {
           create: async (params: any) => {
-            // Use a server-side API endpoint instead of direct OpenAI API call
-            const response = await fetch('/api/ai/chat', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(params)
-            });
-            
-            if (!response.ok) {
-              throw new Error('Failed to get AI response from server');
+            try {
+              const response = await fetch('/api/ai/chat', {
+                method: 'POST',
+                headers: { 
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(params)
+              });
+              
+              if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || 'Failed to get AI response from server');
+              }
+              
+              return response.json();
+            } catch (error) {
+              console.error('Error in OpenAI client:', error);
+              throw error;
             }
-            
-            return response.json();
           }
         }
       }
@@ -47,7 +54,7 @@ const openai = (() => {
     
     return new OpenAI({
       apiKey: process.env.REACT_APP_OPENAI_API_KEY,
-      dangerouslyAllowBrowser: process.env.NODE_ENV !== 'production', // Only allow in development
+      dangerouslyAllowBrowser: process.env.NODE_ENV !== 'production',
     });
   }
 })();
@@ -55,7 +62,7 @@ const openai = (() => {
 // Function to get chat response based on financial context
 export async function getChatResponse(message: string, financialData: CashflowData[]): Promise<string> {
   try {
-    // Calculate financial context similar to getFinancialInsights
+    // Calculate financial context
     const totals = financialData.reduce(
       (acc, curr) => {
         if (curr.type === 'income') acc.income += curr.amount;
@@ -101,7 +108,7 @@ Provide specific, data-driven answers to questions about this financial data.`
     if (error?.message?.includes('API key')) {
       throw new Error('API configuration error. Please check your API key settings.');
     }
-    throw new Error('Failed to get response from AI assistant.');
+    throw error;
   }
 }
 

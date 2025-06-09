@@ -42,7 +42,7 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://*.firebaseio.com https://*.firebase.com https://*.vercel-insights.com; connect-src 'self' https://*.firebaseio.com https://*.firebase.com https://api.openai.com https://*.vercel-insights.com; img-src 'self' data: https://*.firebaseio.com https://*.firebase.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-src 'self' https://*.firebaseio.com https://*.firebase.com https://connect.stripe.com https://www.paypal.com;",
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://*.firebaseio.com https://*.firebase.com https://*.googleapis.com https://*.vercel-insights.com; connect-src 'self' https://*.firebaseio.com https://*.firebase.com https://*.firestore.googleapis.com https://api.openai.com https://*.vercel-insights.com; img-src 'self' data: https://*.firebaseio.com https://*.firebase.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-src 'self' https://*.firebaseio.com https://*.firebase.com https://connect.stripe.com https://www.paypal.com;",
           },
         ],
       },
