@@ -8,7 +8,6 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
-import { getAnalytics } from 'firebase/analytics';
 import { initializeFirestoreFixes } from './firestoreWebChannelFix';
 
 // Store the Firebase instances
@@ -25,33 +24,32 @@ export const initializeEnhancedFirebase = (): { app: FirebaseApp; auth: Auth; db
     return { app, auth, db };
   }
   
+  // Import secure environment variable utility
+  const { validateRequiredEnvVars, getFirebaseConfig, isProduction, isBrowser } = require('../utils/secureEnv');
+
   // Check for required environment variables
   const requiredEnvVars = [
-    'REACT_APP_FIREBASE_API_KEY',
-    'REACT_APP_FIREBASE_AUTH_DOMAIN',
     'REACT_APP_FIREBASE_PROJECT_ID',
-    'REACT_APP_FIREBASE_APP_ID'
+    'REACT_APP_FIREBASE_AUTH_DOMAIN'
   ];
 
-  const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+  // In non-production or server-side, also require API key
+  if (!isProduction || !isBrowser) {
+    requiredEnvVars.push('REACT_APP_FIREBASE_API_KEY');
+    requiredEnvVars.push('REACT_APP_FIREBASE_APP_ID');
+  }
 
-  if (missingEnvVars.length > 0) {
-    const error = new Error(`Missing required Firebase environment variables: ${missingEnvVars.join(', ')}`);
+  const validation = validateRequiredEnvVars(requiredEnvVars);
+  
+  if (!validation.isValid) {
+    const error = new Error(`Firebase initialization error: ${validation.errors.join(', ')}`);
     console.error(error);
     throw error;
   }
 
   try {
-    // Firebase configuration
-    const firebaseConfig = {
-      apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-      authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-      projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
-      storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
-      appId: process.env.REACT_APP_FIREBASE_APP_ID,
-      measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
-    };
+    // Get Firebase configuration with proper security handling
+    const firebaseConfig = getFirebaseConfig();
 
     // Initialize Firebase
     app = initializeApp(firebaseConfig);

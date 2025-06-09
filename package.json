@@ -9,7 +9,11 @@
     "build": "CI=false react-app-rewired build",
     "vercel-build": "CI=false react-app-rewired build",
     "test": "react-app-rewired test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "server": "ts-node --project tsconfig.server.json src/server.ts",
+    "dev:server": "nodemon --exec ts-node --project tsconfig.server.json src/server.ts",
+    "server:simple": "ts-node --project tsconfig.server.json src/server.simple.ts",
+    "dev:server:simple": "nodemon --exec ts-node --project tsconfig.server.json src/server.simple.ts"
   },
   "dependencies": {
     "@heroicons/react": "^1.0.6",
@@ -32,6 +36,7 @@
     "assert": "^2.1.0",
     "browserify-zlib": "^0.2.0",
     "cors": "^2.8.5",
+    "critters": "^0.0.25",
     "crypto-browserify": "^3.12.1",
     "date-fns": "^4.1.0",
     "firebase": "^10.14.1",
@@ -84,11 +89,13 @@
     "@types/stripe": "^8.0.417",
     "autoprefixer": "^10.4.21",
     "buffer": "^6.0.3",
+    "nodemon": "^3.1.10",
     "postcss": "^8.5.3",
     "process": "^0.11.10",
     "react-app-rewired": "^2.2.1",
     "stream-browserify": "^3.0.0",
     "tailwindcss": "^3.4.17",
+    "ts-node": "^10.9.2",
     "util": "^0.12.5"
   }
 }

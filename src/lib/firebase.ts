@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, Auth } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
+import { getFirestore, Firestore, enableIndexedDbPersistence, connectFirestoreEmulator } from 'firebase/firestore';
 import { getAnalytics, Analytics } from 'firebase/analytics';
 
 // Check for required environment variables
@@ -36,17 +36,47 @@ let db: Firestore | undefined;
 let analytics: Analytics | undefined;
 let googleProvider: GoogleAuthProvider | undefined;
 
+// Track initialization status
+let isFirebaseInitialized = false;
+let isFirestoreInitialized = false;
+
 try {
+  // Initialize Firebase app
   app = initializeApp(firebaseConfig);
+  
+  // Initialize Auth
   auth = getAuth(app);
-  db = getFirestore(app);
-  analytics = getAnalytics(app);
   googleProvider = new GoogleAuthProvider();
   
-  // Verify auth is properly initialized
-  if (auth) {
-    console.log('Firebase Auth initialized successfully');
+  // Initialize Firestore with error handling
+  db = getFirestore(app);
+  
+  // Enable offline persistence for better reliability
+  if (typeof window !== 'undefined') {
+    enableIndexedDbPersistence(db).catch((err) => {
+      if (err.code === 'failed-precondition') {
+        console.warn('Firestore persistence could not be enabled (multiple tabs open)');
+      } else if (err.code === 'unimplemented') {
+        console.warn('Firestore persistence not available in this browser');
+      }
+    });
   }
+  
+  // Initialize Analytics in browser environment
+  if (typeof window !== 'undefined') {
+    analytics = getAnalytics(app);
+  }
+  
+  // Use emulator in development if configured
+  if (process.env.NODE_ENV === 'development' && process.env.REACT_APP_USE_FIREBASE_EMULATOR === 'true') {
+    const emulatorHost = process.env.REACT_APP_FIREBASE_EMULATOR_HOST || 'localhost';
+    const firestorePort = process.env.REACT_APP_FIRESTORE_EMULATOR_PORT || '8080';
+    connectFirestoreEmulator(db, emulatorHost, parseInt(firestorePort));
+    console.log(`Connected to Firestore emulator at ${emulatorHost}:${firestorePort}`);
+  }
+  
+  console.log('Firebase Auth initialized successfully');
+  console.log('Firestore initialized successfully');
 } catch (error) {
   console.error('Firebase initialization error:', error);
   console.error('Please verify your Firebase project configuration and ensure Authentication is enabled in the Firebase Console');

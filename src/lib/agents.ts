@@ -1,11 +1,43 @@
 import OpenAI from 'openai';
 import { CashflowData } from './openai';
 
-// Initialize OpenAI client with browser safety configuration
-const openai = new OpenAI({
-  apiKey: process.env.REACT_APP_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true, // Enable browser-side API calls
-});
+// Initialize OpenAI client with proper security configuration
+const openai = (() => {
+  // In production, we should never expose API keys in the browser
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    // Return a client that will use server-side endpoints instead of direct API calls
+    return {
+      chat: {
+        completions: {
+          create: async (params: any) => {
+            // Use a server-side API endpoint instead of direct OpenAI API call
+            const response = await fetch('/api/ai/agent', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(params)
+            });
+            
+            if (!response.ok) {
+              throw new Error('Failed to get AI agent response from server');
+            }
+            
+            return response.json();
+          }
+        }
+      }
+    } as unknown as OpenAI;
+  } else {
+    // For development or server-side code, use the API key directly
+    if (!process.env.REACT_APP_OPENAI_API_KEY) {
+      console.error('OpenAI API key is not configured. Please set REACT_APP_OPENAI_API_KEY in your environment variables.');
+    }
+    
+    return new OpenAI({
+      apiKey: process.env.REACT_APP_OPENAI_API_KEY,
+      dangerouslyAllowBrowser: process.env.NODE_ENV !== 'production', // Only allow in development
+    });
+  }
+})();
 
 // Types for agent responses
 export interface AgentResponse {
