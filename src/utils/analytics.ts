@@ -36,15 +36,14 @@ export const getFirebaseAnalytics = async () => {
   return firebaseAnalytics;
 };
 
-/**
- * Track a custom event in Firebase Analytics with retries
- */
+// Track event with exponential backoff retry
 export const trackEvent = async (eventName: string, eventData: AnalyticsEvent, retryCount = 3) => {
   try {
     const payload = {
       event: eventName,
       timestamp: eventData.timestamp || new Date().toISOString(),
-      ...eventData
+      ...eventData,
+      client_id: getClientId(),
     };
 
     // Try to send to server endpoint
@@ -56,10 +55,21 @@ export const trackEvent = async (eventName: string, eventData: AnalyticsEvent, r
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(payload),
+          // Add a timeout to prevent hanging requests
+          signal: AbortSignal.timeout(10000), // 10 second timeout
         });
 
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          // Get error details from response
+          let errorDetails = 'Unknown error';
+          try {
+            const errorData = await response.json();
+            errorDetails = errorData.error || `HTTP error ${response.status}`;
+          } catch (e) {
+            errorDetails = `HTTP error ${response.status}`;
+          }
+          
+          throw new Error(errorDetails);
         }
 
         // If successful, also log to Firebase Analytics
@@ -75,8 +85,13 @@ export const trackEvent = async (eventName: string, eventData: AnalyticsEvent, r
 
         return;
       } catch (retryError) {
+        console.error(`Error tracking event (attempt ${i + 1}/${retryCount}):`, retryError);
         if (i === retryCount - 1) throw retryError;
-        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i))); // Exponential backoff
+        
+        // Wait before retrying with jitter
+        const baseDelay = 1000 * Math.pow(2, i);
+        const jitter = Math.random() * 1000;
+        await new Promise(resolve => setTimeout(resolve, Math.min(baseDelay + jitter, 10000)));
       }
     }
   } catch (error) {
@@ -86,10 +101,28 @@ export const trackEvent = async (eventName: string, eventData: AnalyticsEvent, r
       const failedEvents = JSON.parse(localStorage.getItem('failed_analytics_events') || '[]');
       failedEvents.push({ eventName, eventData, timestamp: new Date().toISOString() });
       localStorage.setItem('failed_analytics_events', JSON.stringify(failedEvents));
+      
+      // If this is a critical event, log additional diagnostics
+      if (eventName.startsWith('error_') || eventName.includes('_error')) {
+        console.error('Critical event tracking failure:', {
+          event: eventName,
+          timestamp: new Date().toISOString()
+        });
+      }
     } catch (storageError) {
       console.error('Failed to store failed analytics event:', storageError);
     }
   }
+};
+
+// Generate a consistent client ID for anonymous tracking
+const getClientId = (): string => {
+  let clientId = localStorage.getItem('analytics_client_id');
+  if (!clientId) {
+    clientId = 'client_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    localStorage.setItem('analytics_client_id', clientId);
+  }
+  return clientId;
 };
 
 /**

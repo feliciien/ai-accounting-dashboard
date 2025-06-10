@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useCallback, useMemo } from 'react';
 import FileUpload from './FileUpload';
 import AiRecommendations from './AiRecommendations';
 import { useFinancial } from '../context/FinancialContext';
@@ -44,6 +44,7 @@ const Dashboard: React.FC = () => {
   const [loginStreak, setLoginStreak] = React.useState<number>(0);
   const [showWelcomeBack, setShowWelcomeBack] = React.useState<boolean>(false);
   const visitTracked = useRef<boolean>(false);
+  const achievementsProcessedRef = useRef<Set<string>>(new Set());
   const [showGettingStarted, setShowGettingStarted] = React.useState<boolean>(
     !localStorage.getItem('onboardingCompleted')
   );
@@ -65,6 +66,15 @@ const Dashboard: React.FC = () => {
     };
   });
 
+  // Memoize the updateAchievement function to prevent it from changing on every render
+  const updateAchievement = useCallback((achievementId: string, progress: number) => {
+    // Only process each achievement once per session to prevent infinite loops
+    if (!achievementsProcessedRef.current.has(achievementId)) {
+      achievementsProcessedRef.current.add(achievementId);
+      updateAchievementProgress(achievementId, progress);
+    }
+  }, [updateAchievementProgress]);
+
   // Handle user interaction
   React.useEffect(() => {
     const handleInteraction = () => setHasInteracted(true);
@@ -72,11 +82,12 @@ const Dashboard: React.FC = () => {
     window.addEventListener('keydown', handleInteraction);
     
     // Track dashboard visit
-    if (currentUser) {
+    if (currentUser && !visitTracked.current) {
       trackEvent('dashboard_visit', {
         userId: currentUser.uid,
         timestamp: new Date().toISOString()
       });
+      visitTracked.current = true;
     }
     
     return () => {
@@ -87,11 +98,13 @@ const Dashboard: React.FC = () => {
   
   // Effect for tracking dashboard visit duration and usage achievements
   React.useEffect(() => {
+    if (!currentUser) return;
+
     const startTime = new Date();
     let timeSpentInterval: NodeJS.Timeout | undefined;
     
-    if (currentUser) {
-      // Track total visits
+    // Track total visits - only do this once per session
+    if (!visitTracked.current) {
       const totalVisits = parseInt(localStorage.getItem(`totalVisits_${currentUser.uid}`) || '0') + 1;
       localStorage.setItem(`totalVisits_${currentUser.uid}`, totalVisits.toString());
       
@@ -102,7 +115,7 @@ const Dashboard: React.FC = () => {
         // Update achievements in user preferences
         const visitAchievement = achievements.find(a => a.id === 'visits-5');
         if (visitAchievement && !visitAchievement.completed) {
-          updateAchievementProgress('visits-5', 100);
+          updateAchievement('visits-5', 100);
         }
       } else if (totalVisits === 10) {
         addNotification('success', '🏆 Achievement Unlocked: 10 Visits! You\'re a dedicated user!');
@@ -110,7 +123,7 @@ const Dashboard: React.FC = () => {
         // Update achievements in user preferences
         const visitAchievement = achievements.find(a => a.id === 'visits-10');
         if (visitAchievement && !visitAchievement.completed) {
-          updateAchievementProgress('visits-10', 100);
+          updateAchievement('visits-10', 100);
         }
       } else if (totalVisits === 25) {
         addNotification('success', '🏆 Achievement Unlocked: 25 Visits! You\'re a financial pro!');
@@ -118,7 +131,7 @@ const Dashboard: React.FC = () => {
         // Update achievements in user preferences
         const visitAchievement = achievements.find(a => a.id === 'visits-25');
         if (visitAchievement && !visitAchievement.completed) {
-          updateAchievementProgress('visits-25', 100);
+          updateAchievement('visits-25', 100);
         }
       }
       
@@ -131,41 +144,41 @@ const Dashboard: React.FC = () => {
           addNotification('info', '✅ You\'ve completed the dashboard introduction! Explore all features to get the most out of your account.');
         }
       }
-      
-      // Track time spent in real-time (update every 10 seconds)
-      timeSpentInterval = setInterval(() => {
-        // Time tracking removed as it was unused
-        
-        // Update total time spent
-        const totalTimeSpent = parseInt(localStorage.getItem(`totalTimeSpent_${currentUser.uid}`) || '0') + 10;
-        localStorage.setItem(`totalTimeSpent_${currentUser.uid}`, totalTimeSpent.toString());
-        
-        // Check for time spent achievements (in minutes)
-        const totalMinutes = Math.floor(totalTimeSpent / 60);
-        
-        if (totalMinutes === 30 && !localStorage.getItem(`achievement_time_30_${currentUser.uid}`)) {
-          localStorage.setItem(`achievement_time_30_${currentUser.uid}`, 'true');
-          
-          addNotification('success', '🏆 Achievement Unlocked: 30 Minutes! You\'re investing in your financial health!');
-          
-          // Update achievements in user preferences
-          const timeAchievement = achievements.find(a => a.id === 'time-30');
-          if (timeAchievement && !timeAchievement.completed) {
-            updateAchievementProgress('time-30', 100);
-          }
-        } else if (totalMinutes === 60 && !localStorage.getItem(`achievement_time_60_${currentUser.uid}`)) {
-          localStorage.setItem(`achievement_time_60_${currentUser.uid}`, 'true');
-          
-          addNotification('success', '🏆 Achievement Unlocked: 1 Hour! You\'re a dedicated financial planner!');
-          
-          // Update achievements in user preferences
-          const timeAchievement = achievements.find(a => a.id === 'time-60');
-          if (timeAchievement && !timeAchievement.completed) {
-            updateAchievementProgress('time-60', 100);
-          }
-        }
-      }, 10000); // Every 10 seconds
+
+      visitTracked.current = true;
     }
+    
+    // Track time spent in real-time (update every 10 seconds)
+    timeSpentInterval = setInterval(() => {
+      // Update total time spent
+      const totalTimeSpent = parseInt(localStorage.getItem(`totalTimeSpent_${currentUser.uid}`) || '0') + 10;
+      localStorage.setItem(`totalTimeSpent_${currentUser.uid}`, totalTimeSpent.toString());
+      
+      // Check for time spent achievements (in minutes)
+      const totalMinutes = Math.floor(totalTimeSpent / 60);
+      
+      if (totalMinutes === 30 && !localStorage.getItem(`achievement_time_30_${currentUser.uid}`)) {
+        localStorage.setItem(`achievement_time_30_${currentUser.uid}`, 'true');
+        
+        addNotification('success', '🏆 Achievement Unlocked: 30 Minutes! You\'re investing in your financial health!');
+        
+        // Update achievements in user preferences
+        const timeAchievement = achievements.find(a => a.id === 'time-30');
+        if (timeAchievement && !timeAchievement.completed) {
+          updateAchievement('time-30', 100);
+        }
+      } else if (totalMinutes === 60 && !localStorage.getItem(`achievement_time_60_${currentUser.uid}`)) {
+        localStorage.setItem(`achievement_time_60_${currentUser.uid}`, 'true');
+        
+        addNotification('success', '🏆 Achievement Unlocked: 1 Hour! You\'re a dedicated financial planner!');
+        
+        // Update achievements in user preferences
+        const timeAchievement = achievements.find(a => a.id === 'time-60');
+        if (timeAchievement && !timeAchievement.completed) {
+          updateAchievement('time-60', 100);
+        }
+      }
+    }, 10000); // Every 10 seconds
     
     return () => {
       if (timeSpentInterval) {
@@ -186,85 +199,88 @@ const Dashboard: React.FC = () => {
         }
       }
     };
-  }, [currentUser, addNotification, achievements, updateAchievementProgress, tutorials, completeTutorial]);
-  // Track login streak and show welcome back message
+  }, [currentUser, addNotification, achievements, updateAchievement, tutorials, completeTutorial]);
+  // Track login streak and show welcome back message - only run once when component mounts
   React.useEffect(() => {
-    if (currentUser) {
-      // Get last login date from localStorage
-      const storedLastLogin = localStorage.getItem(`lastLogin_${currentUser.uid}`);
-      const storedLoginStreak = localStorage.getItem(`loginStreak_${currentUser.uid}`);
+    if (!currentUser) return;
+
+    // Get last login date from localStorage
+    const storedLastLogin = localStorage.getItem(`lastLogin_${currentUser.uid}`);
+    const storedLoginStreak = localStorage.getItem(`loginStreak_${currentUser.uid}`);
+    
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    
+    let newStreak = 1;
+    
+    if (storedLastLogin) {
+      lastLoginDateRef.current = storedLastLogin;
       
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
-      
-      let newStreak = 1;
-      
-      if (storedLastLogin) {
-        lastLoginDateRef.current = storedLastLogin;
+      // If last login was yesterday, increment streak
+      if (storedLastLogin === yesterdayStr) {
+        newStreak = storedLoginStreak ? parseInt(storedLoginStreak) + 1 : 1;
+        setLoginStreak(newStreak);
         
-        // If last login was yesterday, increment streak
-        if (storedLastLogin === yesterdayStr) {
-          newStreak = storedLoginStreak ? parseInt(storedLoginStreak) + 1 : 1;
-          setLoginStreak(newStreak);
-          
-          // Show achievement notification for streaks
-          if (newStreak === 3) {
-            addNotification('success', '🔥 3-day streak! Keep up the good work!');
-            updateAchievementProgress('login_streak_3', 100);
-          } else if (newStreak === 7) {
-            addNotification('success', '🏆 7-day streak! You\'re on fire!');
-            updateAchievementProgress('login_streak_7', 100);
-          } else if (newStreak === 30) {
-            addNotification('success', '⭐ Amazing! 30-day login streak achieved!');
-            updateAchievementProgress('login_streak_30', 100);
-          }
-        } 
-        // If last login was not today (but not yesterday), reset streak
-        else if (storedLastLogin !== today) {
-          newStreak = 1;
-          setLoginStreak(1);
-        } 
-        // If already logged in today, maintain streak
-        else {
-          newStreak = storedLoginStreak ? parseInt(storedLoginStreak) : 1;
-          setLoginStreak(newStreak);
+        // Show achievement notification for streaks
+        if (newStreak === 3) {
+          addNotification('success', '🔥 3-day streak! Keep up the good work!');
+          updateAchievement('login_streak_3', 100);
+        } else if (newStreak === 7) {
+          addNotification('success', '🏆 7-day streak! You\'re on fire!');
+          updateAchievement('login_streak_7', 100);
+        } else if (newStreak === 30) {
+          addNotification('success', '⭐ Amazing! 30-day login streak achieved!');
+          updateAchievement('login_streak_30', 100);
         }
-        
-        // Only show welcome back if not first login of the day
-        if (storedLastLogin !== today) {
-          setShowWelcomeBack(true);
-          setTimeout(() => setShowWelcomeBack(false), 5000); // Hide after 5 seconds
-        }
+      } 
+      // If last login was not today (but not yesterday), reset streak
+      else if (storedLastLogin !== today) {
+        newStreak = 1;
+        setLoginStreak(1);
+      } 
+      // If already logged in today, maintain streak
+      else {
+        newStreak = storedLoginStreak ? parseInt(storedLoginStreak) : 1;
+        setLoginStreak(newStreak);
       }
       
-      // Update localStorage with today's date and current streak
-      localStorage.setItem(`lastLogin_${currentUser.uid}`, today);
-      localStorage.setItem(`loginStreak_${currentUser.uid}`, newStreak.toString());
+      // Only show welcome back if not first login of the day
+      if (storedLastLogin !== today) {
+        setShowWelcomeBack(true);
+        setTimeout(() => setShowWelcomeBack(false), 5000); // Hide after 5 seconds
+      }
     }
-  }, [currentUser, addNotification, updateAchievementProgress]);
+    
+    // Update localStorage with today's date and current streak
+    localStorage.setItem(`lastLogin_${currentUser.uid}`, today);
+    localStorage.setItem(`loginStreak_${currentUser.uid}`, newStreak.toString());
+  }, [currentUser, addNotification, updateAchievement]); // Only depend on stable references
 
   // Toggle chat box visibility
-  const toggleChatBox = () => {
-    setShowChatBox(!showChatBox);
-    if (!showChatBox) {
-      trackEvent('chat_box_opened', {
-        page: 'dashboard',
-        user_type: currentUser ? 'registered' : 'anonymous',
-        trigger: hasInteracted ? 'user_action' : 'auto_popup'
-      });
-    }
-  };
+  const toggleChatBox = useCallback(() => {
+    setShowChatBox(prevState => {
+      const newState = !prevState;
+      if (newState) {
+        trackEvent('chat_box_opened', {
+          page: 'dashboard',
+          user_type: currentUser ? 'registered' : 'anonymous',
+          trigger: hasInteracted ? 'user_action' : 'auto_popup'
+        });
+      }
+      return newState;
+    });
+  }, [currentUser, hasInteracted]);
 
   // Handle chat box close
-  const handleChatClose = () => {
+  const handleChatClose = useCallback(() => {
     setShowChatBox(false);
     trackEvent('chat_box_closed', {
       page: 'dashboard',
       user_type: currentUser ? 'registered' : 'anonymous'
     });
-  };
+  }, [currentUser]);
   // ForecastData interface removed - using the one from forecast.ts
 
   const [alerts, setAlerts] = React.useState<AnomalyAlert[]>([]);
@@ -288,6 +304,42 @@ const Dashboard: React.FC = () => {
     }
   }, [chartData, rawData, currentUser]);
   
+  // Track user activity milestones - memoized to prevent recreation
+  const trackActivityMilestones = useCallback(() => {
+    if (!currentUser) return;
+    
+    // Get stored activity data
+    const totalVisitsKey = `totalVisits_${currentUser.uid}`;
+    const lastMilestoneKey = `lastMilestone_${currentUser.uid}`;
+    
+    const storedVisits = parseInt(localStorage.getItem(totalVisitsKey) || '0');
+    const lastMilestone = parseInt(localStorage.getItem(lastMilestoneKey) || '0');
+    
+    // Update visits count
+    const newVisitsCount = storedVisits + 1;
+    localStorage.setItem(totalVisitsKey, newVisitsCount.toString());
+    
+    // Check for visit count milestones
+    if (newVisitsCount === 5 && lastMilestone < 5) {
+      addNotification('success', '🌟 You\'ve visited the dashboard 5 times! Thanks for your engagement!');
+      updateAchievement('visits_5', 100);
+      localStorage.setItem(lastMilestoneKey, '5');
+    } else if (newVisitsCount === 10 && lastMilestone < 10) {
+      addNotification('success', '🏅 10 visits! You\'re becoming a financial pro!');
+      updateAchievement('visits_10', 100);
+      localStorage.setItem(lastMilestoneKey, '10');
+    } else if (newVisitsCount === 25 && lastMilestone < 25) {
+      addNotification('success', '🏆 25 visits! Your dedication to financial management is impressive!');
+      updateAchievement('visits_25', 100);
+      localStorage.setItem(lastMilestoneKey, '25');
+    }
+    
+    // Complete onboarding tutorial if this is at least the 3rd visit
+    if (newVisitsCount >= 3) {
+      completeTutorial('dashboard_basics');
+    }
+  }, [currentUser, addNotification, updateAchievement, completeTutorial]);
+
   // Track dashboard visit duration and user activity
   React.useEffect(() => {
     // Check trial status periodically
@@ -295,45 +347,10 @@ const Dashboard: React.FC = () => {
       setTrialInfo(conversionTracking.getTrialInfo());
     }, 60000); // Check every minute
     
-    // Track user activity milestones
-    const trackActivityMilestones = () => {
-      if (!currentUser) return;
-      
-      // Get stored activity data
-      const totalVisitsKey = `totalVisits_${currentUser.uid}`;
-      const lastMilestoneKey = `lastMilestone_${currentUser.uid}`;
-      
-      const storedVisits = parseInt(localStorage.getItem(totalVisitsKey) || '0');
-      const lastMilestone = parseInt(localStorage.getItem(lastMilestoneKey) || '0');
-      
-      // Update visits count
-      const newVisitsCount = storedVisits + 1;
-      localStorage.setItem(totalVisitsKey, newVisitsCount.toString());
-      
-      // Check for visit count milestones
-      if (newVisitsCount === 5 && lastMilestone < 5) {
-        addNotification('success', '🌟 You\'ve visited the dashboard 5 times! Thanks for your engagement!');
-        updateAchievementProgress('visits_5', 100);
-        localStorage.setItem(lastMilestoneKey, '5');
-      } else if (newVisitsCount === 10 && lastMilestone < 10) {
-        addNotification('success', '🏅 10 visits! You\'re becoming a financial pro!');
-        updateAchievementProgress('visits_10', 100);
-        localStorage.setItem(lastMilestoneKey, '10');
-      } else if (newVisitsCount === 25 && lastMilestone < 25) {
-        addNotification('success', '🏆 25 visits! Your dedication to financial management is impressive!');
-        updateAchievementProgress('visits_25', 100);
-        localStorage.setItem(lastMilestoneKey, '25');
-      }
-      
-      // Complete onboarding tutorial if this is at least the 3rd visit
-      if (newVisitsCount >= 3) {
-        completeTutorial('dashboard_basics');
-      }
-    };
-    
-    // Track initial visit
+    // Track initial visit - only once
     if (currentUser && !visitTracked.current) {
       trackActivityMilestones();
+      visitTracked.current = true;
     }
     
     // Track visit on component unmount
@@ -350,7 +367,6 @@ const Dashboard: React.FC = () => {
           durationSeconds,
           currentUser.uid
         );
-        visitTracked.current = true;
         
         // Update total time spent
         const totalTimeSpentKey = `totalTimeSpent_${currentUser.uid}`;
@@ -366,14 +382,14 @@ const Dashboard: React.FC = () => {
         if (minutesSpent >= 60 && lastTimeMilestone < 60) {
           // Will show on next login
           localStorage.setItem(lastTimeMilestoneKey, '60');
-          updateAchievementProgress('time_spent_60min', 100);
+          updateAchievement('time_spent_60min', 100);
         } else if (minutesSpent >= 30 && lastTimeMilestone < 30) {
           localStorage.setItem(lastTimeMilestoneKey, '30');
-          updateAchievementProgress('time_spent_30min', 100);
+          updateAchievement('time_spent_30min', 100);
         }
       }
     };
-  }, [sessionStartTime, currentUser, addNotification, updateAchievementProgress, completeTutorial]);
+  }, [sessionStartTime, currentUser, trackActivityMilestones, updateAchievement]);
 
 interface WorkflowTask {
   id: number;

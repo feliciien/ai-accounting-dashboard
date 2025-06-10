@@ -122,7 +122,9 @@ export const initializeEnhancedFirebase = async (options: FirebaseInitOptions = 
         throw error;
       }
       console.warn(`Firebase initialization attempt ${retryCount} failed, retrying...`);
-      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+      // Store retryCount in a closure to avoid the ESLint no-loop-func error
+      const currentRetryCount = retryCount;
+      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, currentRetryCount)));
     }
   }
 

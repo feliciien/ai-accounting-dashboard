@@ -10,13 +10,11 @@ import { logFirebaseConfigStatus } from './lib/firebaseConfigVerifier';
 import { logFirestoreConfigStatus } from './lib/firestoreConfigVerifier';
 import { logFirestoreSecurityHelp } from './lib/firestoreSecurityHelper';
 import { initializeEnhancedFirebase } from './lib/enhancedFirebaseInit';
-import { initializeFirebaseAnalytics, trackPageView, trackEvent } from './utils/analytics';
-import { analyticsService } from './services/AnalyticsService';
+import { initializeFirebaseAnalytics, trackPageView } from './utils/analytics';
 import { SEO } from './components/SEO';
 import ApiErrorBoundary from './components/common/ApiErrorBoundary';
 import ConversionOptimizer from './components/ConversionOptimizer';
 import './App.css';
-import { handleCookieConsent } from './middleware/errorHandling';
 
 // Lazy load components
 const Dashboard = lazy(() => import('./components/Dashboard'));
@@ -152,15 +150,21 @@ const RouteWrapper = () => {
 
 function App() {
   const [firebaseInitialized, setFirebaseInitialized] = useState(false);
+  const [initializationError, setInitializationError] = useState<string | null>(null);
   
   // Initialize Firebase with better error handling
   useEffect(() => {
     const initializeFirebase = async () => {
       try {
         // Add timeout to prevent Firebase initialization from hanging
-        const initPromise = Promise.resolve(initializeEnhancedFirebase());
+        const initPromise = initializeEnhancedFirebase({
+          enableMultiTab: false,
+          enableDiagnostics: true,
+          maxRetries: 5
+        });
+        
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Firebase initialization timeout')), 5000);
+          setTimeout(() => reject(new Error('Firebase initialization timeout')), 10000); // Increased timeout
         });
         
         await Promise.race([initPromise, timeoutPromise]);
@@ -170,8 +174,12 @@ function App() {
         // Track initial page view
         trackPageView(window.location.pathname, 'Dashboard');
         setFirebaseInitialized(true);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to initialize enhanced Firebase:', error);
+        // Set error message for user display
+        setInitializationError(error?.message || 'Failed to initialize Firebase services');
+        // Track initialization error
+        trackPageView('/error/firebase-initialization', 'Firebase Initialization Error');
         // Continue with app initialization even if Firebase fails
         setFirebaseInitialized(true);
       }
@@ -201,6 +209,11 @@ function App() {
         <p className="text-gray-600">Initializing services...</p>
       </div>
     );
+  }
+  
+  // Show error message if initialization failed
+  if (initializationError) {
+    console.warn('Continuing with limited functionality due to initialization error');
   }
   
   return (

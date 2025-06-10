@@ -27,7 +27,7 @@ export type FirestoreErrorHandler = (error: any) => void;
  */
 export const getFirestoreErrorType = (error: any): FirestoreErrorType => {
   // Handle Firebase errors
-  if (error instanceof FirebaseError) {
+  if (error && typeof error === 'object' && 'code' in error && error.name === 'FirebaseError') {
     return error.code as FirestoreErrorType;
   }
   

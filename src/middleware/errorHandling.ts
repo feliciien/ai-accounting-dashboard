@@ -1,5 +1,6 @@
 import { AxiosError } from 'axios';
 import { trackEvent } from '../utils/analytics';
+import { FirebaseError } from 'firebase-admin/app';
 
 export interface ErrorResponse {
   code: number;
@@ -17,6 +18,70 @@ export class AppError extends Error {
     this.name = 'AppError';
   }
 }
+
+// Handle Firestore-specific errors
+export const handleFirestoreError = (error: any): ErrorResponse => {
+  let code = 500;
+  let message = 'A database error occurred';
+  let data: any = { originalError: error };
+
+  // Check if it's a Firebase/Firestore error
+  if (error?.name === 'FirebaseError' || error?.code?.startsWith('firestore/')) {
+    switch (error.code) {
+      case 'firestore/unavailable':
+      case 'firestore/deadline-exceeded':
+        code = 503;
+        message = 'Database service temporarily unavailable';
+        data.retryable = true;
+        break;
+      case 'firestore/not-found':
+        code = 404;
+        message = 'Requested document not found';
+        break;
+      case 'firestore/permission-denied':
+        code = 403;
+        message = 'You don\'t have permission to access this data';
+        break;
+      case 'firestore/unauthenticated':
+        code = 401;
+        message = 'Authentication required to access this data';
+        break;
+      case 'firestore/cancelled':
+        code = 499; // Client closed request
+        message = 'Operation cancelled';
+        data.retryable = true;
+        break;
+      case 'firestore/data-loss':
+        code = 500;
+        message = 'Critical database error occurred';
+        break;
+      case 'firestore/failed-precondition':
+        code = 400;
+        message = 'Operation cannot be executed in the current system state';
+        break;
+      case 'firestore/resource-exhausted':
+        code = 429;
+        message = 'Database quota exceeded or rate limited';
+        data.retryable = true;
+        break;
+      default:
+        message = error.message || 'A database error occurred';
+    }
+  }
+
+  // Track Firestore error
+  trackEvent('firestore_error', {
+    error_code: error.code || 'unknown',
+    error_message: message,
+    timestamp: new Date().toISOString()
+  });
+
+  return {
+    code,
+    message,
+    data
+  };
+};
 
 export const handleApiError = (error: any): ErrorResponse => {
   // Handle Xero-specific authorization errors
@@ -39,6 +104,9 @@ export const handleApiError = (error: any): ErrorResponse => {
       message: error.message,
       data: error.data
     };
+  } else if (error?.name === 'FirebaseError' || error?.code?.startsWith('firestore/')) {
+    // Handle Firestore errors
+    return handleFirestoreError(error);
   } else if (error?.code?.startsWith('auth/')) {
     // Handle Firebase Auth errors
     const code = 401;
