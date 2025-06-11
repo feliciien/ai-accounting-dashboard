@@ -48,14 +48,14 @@ const openai = (() => {
     } as unknown as OpenAI;
   } else {
     // For development or server-side code, use the API key directly
-    if (!process.env.REACT_APP_OPENAI_API_KEY) {
-      console.error('OpenAI API key is not configured. Please set REACT_APP_OPENAI_API_KEY in your environment variables.');
+    if (!process.env.OPENAI_API_KEY) {
+      console.error('OpenAI API key is not configured. Please set OPENAI_API_KEY in your environment variables.');
     }
     
-    return new OpenAI({
-      apiKey: process.env.REACT_APP_OPENAI_API_KEY,
-      dangerouslyAllowBrowser: process.env.NODE_ENV !== 'production',
-    });
+      return new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+        dangerouslyAllowBrowser: process.env.NODE_ENV !== 'production',
+      });
   }
 })();
 

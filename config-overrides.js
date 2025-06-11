@@ -41,7 +41,7 @@ module.exports = function override(config, env) {
       Buffer: ['buffer', 'Buffer'],
     }),
     new webpack.DefinePlugin({
-      'process.env': JSON.stringify(process.env)
+      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV)
     }),
     new webpack.NormalModuleReplacementPlugin(/node:/, (resource) => {
       const mod = resource.request.replace(/^node:/, '');

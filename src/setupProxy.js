@@ -5,7 +5,7 @@ module.exports = function(app) {
   app.use(
     '/api',
     createProxyMiddleware({
-      target: 'http://127.0.0.1:4000',
+      target: 'http://127.0.0.1:3001',
       changeOrigin: true,
       onError: (err, req, res) => {
         console.error('Proxy error:', err);
@@ -15,12 +15,12 @@ module.exports = function(app) {
   );
 
   // Fallback route for when the proxy fails
-  app.use('/api-fallback', (req, res) => {
-    res.status(503).json({ 
-      message: 'Backend service is currently unavailable. Please ensure the Express server is running on port 4000.',
-      error: 'SERVICE_UNAVAILABLE'
-    });
-  });
+      app.use('/api-fallback', (req, res) => {
+        res.status(503).json({ 
+          message: 'Backend service is currently unavailable. Please ensure the Express server is running on port 3001.',
+          error: 'SERVICE_UNAVAILABLE'
+        });
+      });
 
   // Handle static assets that might be proxied
   app.use('/logo192.png', (req, res, next) => {
