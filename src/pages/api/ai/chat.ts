@@ -3,7 +3,7 @@ import OpenAI from 'openai';
 
 // Initialize OpenAI client (server-side only)
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY, // Changed from REACT_APP_OPENAI_API_KEY
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 // Validate API key presence

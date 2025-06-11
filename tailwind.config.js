@@ -1,11 +1,25 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  content: ['./src/**/*.{js,jsx,ts,tsx}', './public/index.html'],
   darkMode: 'class',
-  content: [
-    "./src/**/*.{js,jsx,ts,tsx}",
-  ],
   theme: {
     extend: {
+      screens: {
+        'xs': '360px',
+        'sm': '640px',
+        'md': '768px',
+        'lg': '1024px',
+        'xl': '1280px',
+        '2xl': '1536px',
+        'tall': { 'raw': '(min-height: 800px)' },
+        'short': { 'raw': '(max-height: 600px)' }
+      },
+      spacing: {
+        'safe-top': 'env(safe-area-inset-top)',
+        'safe-bottom': 'env(safe-area-inset-bottom)',
+        'safe-left': 'env(safe-area-inset-left)',
+        'safe-right': 'env(safe-area-inset-right)',
+      },
       colors: {
         primary: {
           50: '#f0f9ff',
@@ -19,19 +33,6 @@ module.exports = {
           800: '#075985',
           900: '#0c4a6e',
           950: '#082f49',
-        },
-        secondary: {
-          50: '#f0fdfa',
-          100: '#ccfbf1',
-          200: '#99f6e4',
-          300: '#5eead4',
-          400: '#2dd4bf',
-          500: '#14b8a6',
-          600: '#0d9488',
-          700: '#0f766e',
-          800: '#115e59',
-          900: '#134e4a',
-          950: '#042f2e',
         },
         success: {
           50: '#f0fdf4',
@@ -76,13 +77,30 @@ module.exports = {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },
+      fontSize: {
+        'fluid-xs': 'clamp(0.75rem, calc(0.625rem + 0.25vw), 0.875rem)',
+        'fluid-sm': 'clamp(0.875rem, calc(0.75rem + 0.25vw), 1rem)',
+        'fluid-base': 'clamp(1rem, calc(0.875rem + 0.25vw), 1.125rem)',
+        'fluid-lg': 'clamp(1.125rem, calc(1rem + 0.25vw), 1.25rem)',
+        'fluid-xl': 'clamp(1.25rem, calc(1.125rem + 0.25vw), 1.5rem)',
+        'fluid-2xl': 'clamp(1.5rem, calc(1.25rem + 0.5vw), 2rem)',
+      },
       boxShadow: {
-        card: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+        'card': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
         'card-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
       },
       borderRadius: {
         'xl': '1rem',
         '2xl': '1.5rem',
+      },
+      height: {
+        'screen-safe': 'calc(100vh - env(safe-area-inset-bottom))',
+      },
+      width: {
+        'screen-safe': 'calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right))',
+      },
+      maxWidth: {
+        'screen-safe': 'calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right))',
       },
     },
   },

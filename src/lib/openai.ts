@@ -4,15 +4,29 @@ import OpenAI from 'openai';
 export interface CashflowData {
   date: string;
   amount: number;
-  category: string;
   type: 'income' | 'expense';
+  category?: string;
+  description?: string;
 }
 
 // Types for chat functionality
 export interface ChatMessage {
-  role: 'system' | 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'system';
   content: string;
 }
+
+// Get OpenAI API key from environment variables
+const getApiKey = () => {
+  // In development, we can use either OPENAI_API_KEY or REACT_APP_OPENAI_API_KEY
+  const apiKey = process.env.REACT_APP_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+  
+  if (!apiKey) {
+    console.error('No OpenAI API key found. Please set REACT_APP_OPENAI_API_KEY in your .env file');
+    return null;
+  }
+  
+  return apiKey;
+};
 
 // Initialize OpenAI client with proper security configuration
 const openai = (() => {
@@ -47,131 +61,76 @@ const openai = (() => {
       }
     } as unknown as OpenAI;
   } else {
-    // For development or server-side code, use the API key directly
-    if (!process.env.OPENAI_API_KEY) {
-      console.error('OpenAI API key is not configured. Please set OPENAI_API_KEY in your environment variables.');
+    // For development, use the API key directly
+    const apiKey = getApiKey();
+    
+    if (!apiKey) {
+      // Return a dummy client that logs errors instead of making API calls
+      return {
+        chat: {
+          completions: {
+            create: async () => {
+              throw new Error('OpenAI API key not configured. Please check your environment variables.');
+            }
+          }
+        }
+      } as unknown as OpenAI;
     }
     
-      return new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-        dangerouslyAllowBrowser: process.env.NODE_ENV !== 'production',
-      });
+    return new OpenAI({
+      apiKey,
+      dangerouslyAllowBrowser: true // Only in development
+    });
   }
 })();
 
 // Function to get chat response based on financial context
 export async function getChatResponse(message: string, financialData: CashflowData[]): Promise<string> {
   try {
-    // Calculate financial context
-    const totals = financialData.reduce(
-      (acc, curr) => {
-        if (curr.type === 'income') acc.income += curr.amount;
-        else acc.expenses += curr.amount;
-        return acc;
-      },
-      { income: 0, expenses: 0 }
-    );
-
-    const categoryTotals = financialData.reduce((acc, curr) => {
-      const key = `${curr.type}-${curr.category}`;
-      acc[key] = (acc[key] || 0) + curr.amount;
-      return acc;
-    }, {} as Record<string, number>);
-
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "gpt-4",
       messages: [
         {
           role: "system",
-          content: `You are a financial assistant analyzing the following financial data:
-- Total income: $${totals.income.toFixed(2)}
-- Total expenses: $${totals.expenses.toFixed(2)}
-- Net cash flow: $${(totals.income - totals.expenses).toFixed(2)}
-- Categories: ${Object.entries(categoryTotals)
-            .map(([cat, amount]) => `${cat}: $${amount.toFixed(2)}`)
-            .join(', ')}
-
-Provide specific, data-driven answers to questions about this financial data.`
+          content: "You are a financial AI assistant. Analyze the financial data and provide insights and answers."
         },
         {
           role: "user",
-          content: message
+          content: `Financial data: ${JSON.stringify(financialData)}\n\nUser question: ${message}`
         }
       ],
-      max_tokens: 500,
       temperature: 0.7,
+      max_tokens: 500,
     });
 
-    return response.choices[0]?.message.content || "I'm unable to provide an answer at this time.";
-  } catch (error: any) {
+    return response.choices[0]?.message?.content || "Sorry, I couldn't generate a response.";
+  } catch (error) {
     console.error('Error getting chat response:', error);
-    if (error?.message?.includes('API key')) {
-      throw new Error('API configuration error. Please check your API key settings.');
-    }
     throw error;
   }
 }
 
 export async function getFinancialInsights(financialData: CashflowData[]): Promise<string> {
   try {
-    // Calculate total income and expenses
-    const totals = financialData.reduce(
-      (acc, curr) => {
-        if (curr.type === 'income') acc.income += curr.amount;
-        else acc.expenses += curr.amount;
-        return acc;
-      },
-      { income: 0, expenses: 0 }
-    );
-
-    // Group by category
-    const categoryTotals = financialData.reduce((acc, curr) => {
-      const key = `${curr.type}-${curr.category}`;
-      acc[key] = (acc[key] || 0) + curr.amount;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const prompt = `Analyze this financial data and provide 3-5 specific insights and recommendations. Consider:
-- Total income: $${totals.income.toFixed(2)}
-- Total expenses: $${totals.expenses.toFixed(2)}
-- Net cash flow: $${(totals.income - totals.expenses).toFixed(2)}
-- Top categories by volume: ${Object.entries(categoryTotals)
-  .sort((a, b) => b[1] - a[1])
-  .slice(0, 3)
-  .map(([cat, amount]) => `${cat}: $${amount.toFixed(2)}`)
-  .join(', ')}
-
-Provide insights as bullet points, focusing on:
-- Spending patterns and anomalies
-- Budget optimization opportunities
-- Cash flow management recommendations
-- Tax planning considerations`;
-
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "gpt-4",
       messages: [
         {
           role: "system",
-          content: "You are a financial analyst providing actionable insights based on accounting data. Focus on practical, specific recommendations."
+          content: "You are a financial analyst AI. Analyze the financial data and provide key insights."
         },
         {
           role: "user",
-          content: `${prompt}\n\nDetailed Data:\n${JSON.stringify(financialData, null, 2)}`
+          content: `Please analyze this financial data and provide key insights: ${JSON.stringify(financialData)}`
         }
       ],
-      max_tokens: 500,
       temperature: 0.7,
+      max_tokens: 1000,
     });
 
-    return response.choices[0]?.message.content || 'No insights available';
-  } catch (error: any) {
+    return response.choices[0]?.message?.content || "No insights could be generated.";
+  } catch (error) {
     console.error('Error getting financial insights:', error);
-    // Handle specific error cases
-    if (error?.message?.includes('API key')) {
-      return 'API configuration error. Please check your API key settings.';
-    } else if (error?.httpStatus === 403) {
-      return 'Permission error. Please verify your API access permissions.';
-    }
-    return 'Error analyzing financial data';
+    throw error;
   }
 }

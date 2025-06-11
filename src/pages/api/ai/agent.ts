@@ -3,12 +3,12 @@ import OpenAI from 'openai';
 
 // Initialize OpenAI client (server-side only)
 const openai = new OpenAI({
-  apiKey: process.env.REACT_APP_OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 // Validate API key presence
-if (!process.env.REACT_APP_OPENAI_API_KEY) {
-  console.error('OpenAI API key is not configured. Please set REACT_APP_OPENAI_API_KEY in your environment variables.');
+if (!process.env.OPENAI_API_KEY) {
+  console.error('OpenAI API key is not configured. Please set OPENAI_API_KEY in your environment variables.');
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

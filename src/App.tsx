@@ -217,24 +217,28 @@ function App() {
   }
   
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 dark:text-gray-100">
-      <AuthProvider>
-      <FeatureFlagsProvider>
-        <NotificationProvider>
-          <UserPreferencesProvider>
-            <FinancialProvider>
-              <IntegrationProvider>
-                <Router>
-                  <ApiErrorBoundary>
-                    <RouteWrapper />
-                  </ApiErrorBoundary>
-                </Router>
-              </IntegrationProvider>
-            </FinancialProvider>
-          </UserPreferencesProvider>
-        </NotificationProvider>
-      </FeatureFlagsProvider>
-    </AuthProvider>
+    <div className="App h-screen flex flex-col overflow-hidden">
+      <div className="flex-1 overflow-y-auto ios-scroll momentum-scroll">
+        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 dark:text-gray-100">
+          <AuthProvider>
+            <FeatureFlagsProvider>
+              <NotificationProvider>
+                <UserPreferencesProvider>
+                  <FinancialProvider>
+                    <IntegrationProvider>
+                      <Router>
+                        <ApiErrorBoundary>
+                          <RouteWrapper />
+                        </ApiErrorBoundary>
+                      </Router>
+                    </IntegrationProvider>
+                  </FinancialProvider>
+                </UserPreferencesProvider>
+              </NotificationProvider>
+            </FeatureFlagsProvider>
+          </AuthProvider>
+        </div>
+      </div>
     </div>
   );
 }

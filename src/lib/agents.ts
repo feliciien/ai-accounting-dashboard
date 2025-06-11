@@ -10,31 +10,46 @@ const openai = (() => {
       chat: {
         completions: {
           create: async (params: any) => {
-            // Use a server-side API endpoint instead of direct OpenAI API call
-            const response = await fetch('/api/ai/agent', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(params)
-            });
-            
-            if (!response.ok) {
-              throw new Error('Failed to get AI agent response from server');
+            try {
+              const response = await fetch('/api/ai/agent', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(params)
+              });
+              
+              if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || 'Failed to get AI agent response from server');
+              }
+              
+              return response.json();
+            } catch (error) {
+              console.error('Error in agent client:', error);
+              throw error;
             }
-            
-            return response.json();
           }
         }
       }
     } as unknown as OpenAI;
   } else {
-    // For development or server-side code, use the API key directly
-    if (!process.env.REACT_APP_OPENAI_API_KEY) {
-      console.error('OpenAI API key is not configured. Please set REACT_APP_OPENAI_API_KEY in your environment variables.');
+    // For development, use the API key directly
+    const apiKey = process.env.OPENAI_API_KEY || process.env.REACT_APP_OPENAI_API_KEY;
+    if (!apiKey) {
+      // Return a dummy client that logs errors instead of making API calls
+      return {
+        chat: {
+          completions: {
+            create: async () => {
+              throw new Error('OpenAI API key not configured. Please check your environment variables.');
+            }
+          }
+        }
+      } as unknown as OpenAI;
     }
     
     return new OpenAI({
-      apiKey: process.env.REACT_APP_OPENAI_API_KEY,
-      dangerouslyAllowBrowser: process.env.NODE_ENV !== 'production', // Only allow in development
+      apiKey,
+      dangerouslyAllowBrowser: true // Only in development
     });
   }
 })();

@@ -45,27 +45,33 @@ const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
       <aside 
         className={`
           fixed md:sticky top-0 inset-y-0 left-0 z-20
-          transform md:transform-none
+          transform md:transform-none transition-all duration-300 ease-in-out
           ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-          transition-all duration-300 ease-in-out
-          p-3 sm:p-4 bg-gray-900 text-white h-screen w-[85vw] sm:w-64 md:w-72 lg:w-80
+          p-3 sm:p-4 bg-gray-900 text-white 
+          h-[100dvh] w-[85vw] sm:w-64 md:w-72 lg:w-80
           overflow-y-auto shadow-xl
           ${className}
         `}
       >
-        {/* Mobile overlay */}
+        {/* Mobile close button - More accessible */}
         {isMobileMenuOpen && (
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-50 z-10 md:hidden" 
+          <button
             onClick={toggleMobileMenu}
-          />
+            className="md:hidden absolute top-3 right-3 p-2 text-gray-400 hover:text-white rounded-full focus:outline-none focus:ring-2 focus:ring-white"
+            aria-label="Close menu"
+          >
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         )}
-        <div className="mb-6 flex items-center justify-between">
+
+        <div className="mb-6 flex items-center">
           <h1 className="text-lg md:text-xl font-bold flex items-center">
             <svg className="w-6 h-6 mr-2 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
             </svg>
-            Financial Dashboard
+            <span className="hidden sm:inline">Financial</span> Dashboard
           </h1>
         </div>
       

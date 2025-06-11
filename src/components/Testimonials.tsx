@@ -64,24 +64,35 @@ const Testimonials: React.FC<{withCTA?: boolean}> = ({ withCTA = false }) => {
                 key={testimonial.id}
                 className="flex flex-col justify-between rounded-2xl bg-white p-8 shadow-lg ring-1 ring-gray-200 transition-all duration-200 hover:shadow-xl"
               >
-                <div className="flex items-start gap-4">
-                  {testimonial.image && (
-                    <img
-                      className="h-12 w-12 flex-none rounded-full bg-gray-50"
-                      src={testimonial.image}
-                      alt={testimonial.name}
-                    />
-                  )}
-                  <div className="flex-auto">
-                    <div className="text-base font-semibold leading-7 text-gray-900">{testimonial.name}</div>
-                    <div className="text-sm leading-6 text-gray-600">
-                      {testimonial.role} at {testimonial.company}
+                <div>
+                  <div className="flex items-start gap-4">
+                    {testimonial.image && (
+                      <div className="relative flex-shrink-0">
+                        <img
+                          className="h-12 w-12 rounded-full bg-gray-50 object-cover"
+                          src={testimonial.image}
+                          alt={testimonial.name}
+                          loading="lazy"
+                          onError={(e) => {
+                            // Fallback to initials if image fails to load
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                          }}
+                        />
+                        <div className="hidden absolute inset-0 h-12 w-12 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center text-lg font-medium">
+                          {testimonial.name.split(' ').map(n => n[0]).join('')}
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex-auto">
+                      <div className="text-base font-semibold text-gray-900">{testimonial.name}</div>
+                      <div className="text-sm text-gray-500">{testimonial.role} at {testimonial.company}</div>
                     </div>
                   </div>
+                  <blockquote className="mt-6 text-base text-gray-500">
+                    {testimonial.content}
+                  </blockquote>
                 </div>
-                <blockquote className="mt-6 text-base leading-7 text-gray-600">
-                  {testimonial.content}
-                </blockquote>
               </div>
             ))}
           </div>

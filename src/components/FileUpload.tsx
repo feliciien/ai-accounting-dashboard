@@ -41,7 +41,7 @@ interface FinancialRecord {
 // Removed unused extractTags function
 
 const FileUpload: React.FC = () => {
-  const { setFinancialData } = useFinancial();
+  const { rawData, setFinancialData } = useFinancial();
   const { currentUser, checkUploadEligibility, updateUploadLimits } = useAuth();
   const [previewData, setPreviewData] = useState<FinancialRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -470,8 +470,44 @@ const FileUpload: React.FC = () => {
     });
   }, [currentUser]);
   
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const types = Array.from(new Set(previewData.map(record => record.type)));
+  const categories = Array.from(new Set(previewData.map(record => record.category)));
+  
+  const handleTagClick = (tag: string) => {
+    const newSelectedTags = selectedTags.includes(tag)
+      ? selectedTags.filter(t => t !== tag)
+      : [...selectedTags, tag];
+    setSelectedTags(newSelectedTags);
+    
+    // Filter records based on selected tags
+    const filteredData = rawData.filter((record: FinancialRecord) => {
+      if (newSelectedTags.length === 0) return true;
+      return newSelectedTags.includes(record.type) || newSelectedTags.includes(record.category);
+    });
+    setPreviewData(filteredData.slice(0, 5));
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Tag filters */}
+      <div className="flex flex-wrap gap-2">
+        {Array.from(new Set([...types, ...categories])).map(tag => (
+          <button
+            key={tag}
+            onClick={() => handleTagClick(tag)}
+            className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors
+              ${selectedTags.includes(tag)
+                ? 'bg-primary-100 text-primary-700 border-2 border-primary-500'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-2 border-transparent'
+              }
+            `}
+          >
+            {tag}
+          </button>
+        ))}
+      </div>
+      
       {showAuthModal && (
         <AuthModal 
           isOpen={showAuthModal} 

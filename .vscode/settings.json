@@ -1,0 +1,6 @@
+{
+  "css.validate": true,
+  "css.customData": [
+    "./custom-data.json"
+  ]
+}
