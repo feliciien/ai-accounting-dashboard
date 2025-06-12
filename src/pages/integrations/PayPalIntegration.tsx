@@ -103,7 +103,7 @@ const PayPalIntegration: React.FC = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      <Sidebar />
+      <Sidebar isMobileMenuOpen={false} toggleMobileMenu={() => {}} />
       <main className="flex-1 p-6">
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">

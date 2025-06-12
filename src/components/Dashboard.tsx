@@ -28,6 +28,9 @@ import DarkModeToggle from './DarkModeToggle';
 
 
 const Dashboard: React.FC = () => {
+  // Hamburger menu state for mobile sidebar
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const toggleMobileMenu = () => setIsMobileMenuOpen((open) => !open);
   const { chartData, rawData } = useFinancial();
   const { currentUser, logout, uploadLimits } = useAuth();
   const { addNotification } = useNotification();
@@ -451,7 +454,12 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-50 dark:bg-gray-900 dark:text-gray-100">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        isMobileMenuOpen={isMobileMenuOpen}
+        toggleMobileMenu={toggleMobileMenu}
+      />
       <div className="flex-1 w-full overflow-hidden ios-scroll momentum-scroll">
         <main className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-3 md:py-6 safe-bottom">
           {/* Subscription Banner - only shown to non-premium users */}
@@ -523,7 +531,21 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
                     <span className="hidden sm:inline">Financial</span> Dashboard
                   </h1>
                 </div>
-                
+                {/* Hamburger menu button for mobile */}
+                <button
+                  onClick={toggleMobileMenu}
+                  className="md:hidden ml-auto p-2 rounded-md bg-gray-900 text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-white transition-colors duration-200 shadow-lg"
+                  aria-label="Open menu"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d={isMobileMenuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
+                    />
+                  </svg>
+                </button>
                 {/* Responsive Tab Navigation */}
                 <nav className="flex space-x-1 sm:space-x-3 md:space-x-4">
                   <button 
@@ -557,11 +579,15 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
                     Insights
                   </button>
                 </nav>
+                {/* Dark mode toggle for desktop */}
+                <div className="hidden md:flex items-center ml-4">
+                  <DarkModeToggle />
+                </div>
               </div>
             </div>
           </header>
 
-          <main className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-3 md:py-6 safe-bottom">
+          <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-3 md:py-6 safe-bottom">
             {/* Auth Modal */}
             {showAuthModal && (
               <AuthModal 
@@ -1170,6 +1196,7 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
                 </div>
               </>
             )}
+          </div>
           </div>
         </main>
       </div>

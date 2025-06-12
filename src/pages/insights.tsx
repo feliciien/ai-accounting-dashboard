@@ -26,7 +26,7 @@ const InsightsPage: React.FC = () => {
       </Head>
       
       <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
-        <Sidebar />
+        <Sidebar isMobileMenuOpen={false} toggleMobileMenu={() => {}} />
         
         <main className="flex-1 p-4 md:p-8">
           <div className="max-w-7xl mx-auto">
