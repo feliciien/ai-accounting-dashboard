@@ -15,6 +15,7 @@ import Sidebar from './Sidebar';
 import { ReconcileTask, ParserTask, TaxEstimateTask } from './workflow/WorkflowTasks';
 import Testimonials from './Testimonials';
 import OnboardingChecklist from './onboarding/OnboardingChecklist';
+import RecentActivityFeed from './RecentActivityFeed';
 import { conversionTracking, TrialInfo } from '../services/ConversionTrackingService';
 import { trackEvent } from '../utils/analytics';
 
@@ -453,7 +454,7 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
 
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50 dark:bg-gray-900 dark:text-gray-100">
+    <div className="flex flex-col md:flex-row min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 dark:text-gray-100 transition-colors duration-500">
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -461,7 +462,7 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
         toggleMobileMenu={toggleMobileMenu}
       />
       <div className="flex-1 w-full overflow-hidden ios-scroll momentum-scroll">
-        <main className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-3 md:py-6 safe-bottom">
+        <main className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-3 md:py-6 safe-bottom transition-all duration-500">
           {/* Subscription Banner - only shown to non-premium users */}
           {!uploadLimits.hasPremium && (
             <SubscriptionBanner className="mb-6 sticky top-0 z-20 safe-top" />
@@ -503,9 +504,10 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
             {/* Floating Action Button for Chat */}
             <button
               onClick={toggleChatBox}
-              className="fixed bottom-6 right-6 bg-primary-600 text-white p-4 rounded-full shadow-lg hover:bg-primary-700 
-                transition-colors z-50 flex items-center justify-center tap-target tap-highlight safe-bottom"
+              className="fixed bottom-6 right-6 bg-primary-600 text-white p-4 rounded-full shadow-xl hover:bg-primary-700 
+                transition-colors z-50 flex items-center justify-center tap-target tap-highlight safe-bottom animate-bounce-slow focus:ring-4 focus:ring-primary-300"
               aria-label="Toggle Financial Assistant"
+              style={{ boxShadow: '0 8px 32px 0 rgba(80, 120, 255, 0.18)' }}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
@@ -523,9 +525,9 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
               </Link>
             </div>
           {/* Enhanced Mobile-Friendly Header with navigation */}
-          <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+          <header className="bg-white/80 backdrop-blur border-b border-gray-200 sticky top-0 z-10 shadow-md transition-all duration-300">
             <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
-              <div className="flex justify-between items-center h-14 sm:h-16">
+              <div className="flex justify-between items-center h-14 sm:h-16 transition-all duration-300">
                 <div className="flex items-center">
                   <h1 className="text-base sm:text-xl md:text-2xl font-bold text-primary-600 transition-all duration-300">
                     <span className="hidden sm:inline">Financial</span> Dashboard
@@ -534,7 +536,7 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
                 {/* Hamburger menu button for mobile */}
                 <button
                   onClick={toggleMobileMenu}
-                  className="md:hidden ml-auto p-2 rounded-md bg-gray-900 text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-white transition-colors duration-200 shadow-lg"
+                  className="md:hidden ml-auto p-2 rounded-md bg-gray-900 text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-white transition-colors duration-200 shadow-lg tap-target"
                   aria-label="Open menu"
                 >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -550,30 +552,30 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
                 <nav className="flex space-x-1 sm:space-x-3 md:space-x-4">
                   <button 
                     onClick={() => setActiveTab('overview')} 
-                    className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors ${
+                    className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-all duration-300 ${
                       activeTab === 'overview' 
-                        ? 'bg-primary-100 text-primary-700' 
-                        : 'text-gray-500 hover:text-gray-700'
+                        ? 'bg-gradient-to-r from-primary-200 to-blue-100 text-primary-800 shadow-md scale-105' 
+                        : 'text-gray-500 hover:text-primary-700 hover:bg-primary-50'
                     }`}
                   >
                     Overview
                   </button>
                   <button 
                     onClick={() => setActiveTab('tasks')} 
-                    className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors ${
+                    className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-all duration-300 ${
                       activeTab === 'tasks' 
-                        ? 'bg-primary-100 text-primary-700' 
-                        : 'text-gray-500 hover:text-gray-700'
+                        ? 'bg-gradient-to-r from-primary-200 to-blue-100 text-primary-800 shadow-md scale-105' 
+                        : 'text-gray-500 hover:text-primary-700 hover:bg-primary-50'
                     }`}
                   >
                     Tasks
                   </button>
                   <button 
                     onClick={() => setActiveTab('insights')} 
-                    className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors ${
+                    className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-all duration-300 ${
                       activeTab === 'insights' 
-                        ? 'bg-primary-100 text-primary-700' 
-                        : 'text-gray-500 hover:text-gray-700'
+                        ? 'bg-gradient-to-r from-primary-200 to-blue-100 text-primary-800 shadow-md scale-105' 
+                        : 'text-gray-500 hover:text-primary-700 hover:bg-primary-50'
                     }`}
                   >
                     Insights
@@ -810,7 +812,7 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
                 
                 {/* User Activity Summary - Only for logged in users and after onboarding or if user has data */}
                 {currentUser && (localStorage.getItem('onboardingCompleted') || rawData.length > 0) && (
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 mb-6">
+                  <div className="bg-white/90 backdrop-blur rounded-xl shadow-xl border border-gray-100 p-4 md:p-6 mb-6 transition-all duration-300 hover:shadow-2xl">
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-lg font-semibold text-gray-900">Your Activity</h2>
                       {loginStreak > 1 && (
@@ -888,6 +890,9 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
                   </div>
                 )}
                 
+                {/* Recent Activity Feed */}
+                <RecentActivityFeed />
+
                 {/* Enhanced Trial Banner with Countdown - Only shown after onboarding is completed or if user has data */}
                 {(localStorage.getItem('onboardingCompleted') || rawData.length > 0) && trialInfo.isActive && trialInfo.daysRemaining <= 7 && (
                   <div className={`${trialInfo.daysRemaining <= 2 ? 'bg-red-50 border-red-100' : 'bg-yellow-50 border-yellow-100'} border rounded-xl p-5 mb-6 shadow-md transition-all duration-300 transform hover:scale-[1.01]`}>
@@ -934,7 +939,7 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
                 )}
                 
                 {/* Data Completeness Progress */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 mb-6">
+                <div className="bg-white/90 backdrop-blur rounded-xl shadow-xl border border-gray-100 p-4 md:p-6 mb-6 transition-all duration-300 hover:shadow-2xl">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-semibold text-gray-900">Financial Data Completeness</h2>
                     <div className="text-sm font-medium text-gray-500">
@@ -943,11 +948,12 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
                   </div>
                   
                   {/* Progress bar */}
-                  <div className="w-full bg-gray-100 rounded-full h-2.5 mb-4">
+                  <div className="w-full bg-gray-100 rounded-full h-2.5 mb-4 relative overflow-hidden">
                     <div 
-                      className="bg-primary-600 h-2.5 rounded-full transition-all duration-500 ease-out" 
+                      className="bg-gradient-to-r from-primary-500 via-blue-400 to-indigo-400 h-2.5 rounded-full transition-all duration-700 ease-out animate-progress"
                       style={{ width: `${rawData.length > 0 ? Math.min(100, Math.floor(rawData.length / 10 * 100)) : 0}%` }}
                     ></div>
+                    <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-xs font-semibold text-primary-700">{rawData.length > 0 ? `${Math.min(100, Math.floor(rawData.length / 10 * 100))}%` : '0%'}</span>
                   </div>
                   
                   {rawData.length === 0 ? (
@@ -1019,7 +1025,7 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
                 
                 {/* Quick Stats */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                  <div className="bg-white rounded-xl shadow-card hover:shadow-card-hover transition-shadow p-4 md:p-6 border border-gray-100">
+                  <div className="bg-white/90 backdrop-blur rounded-xl shadow-xl border border-gray-100 p-4 md:p-6 transition-all duration-300 hover:shadow-2xl">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-medium text-gray-900">Total Income</h3>
                       <span className="p-2 bg-success-100 rounded-full">
@@ -1033,8 +1039,7 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
                     </p>
                     <p className="text-sm text-gray-500 mt-1">Year to date</p>
                   </div>
-                  
-                  <div className="bg-white rounded-xl shadow-card hover:shadow-card-hover transition-shadow p-6 border border-gray-100">
+                  <div className="bg-white/90 backdrop-blur rounded-xl shadow-xl border border-gray-100 p-6 transition-all duration-300 hover:shadow-2xl">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-medium text-gray-900">Total Expenses</h3>
                       <span className="p-2 bg-danger-100 rounded-full">
@@ -1048,8 +1053,7 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
                     </p>
                     <p className="text-sm text-gray-500 mt-1">Year to date</p>
                   </div>
-                  
-                  <div className="bg-white rounded-xl shadow-card hover:shadow-card-hover transition-shadow p-6 border border-gray-100">
+                  <div className="bg-white/90 backdrop-blur rounded-xl shadow-xl border border-gray-100 p-6 transition-all duration-300 hover:shadow-2xl">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-medium text-gray-900">Net Profit</h3>
                       <span className="p-2 bg-primary-100 rounded-full">
@@ -1072,7 +1076,7 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
                 <CashFlowForecast />
 
                 {/* File Upload Section */}
-                <div id="file-upload" className="bg-white rounded-xl shadow-card p-4 md:p-6 border border-gray-100">
+                <div id="file-upload" className="bg-white/90 backdrop-blur rounded-xl shadow-xl p-4 md:p-6 border border-gray-100 transition-all duration-300 hover:shadow-2xl">
                   <h2 className="text-xl font-semibold mb-4 text-gray-900">Upload Financial Data</h2>
                   <FileUpload />
                 </div>
@@ -1082,7 +1086,7 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
             {/* Tasks Tab */}
             {activeTab === 'tasks' && (
               <div className="space-y-6">
-                <div className="bg-white rounded-xl shadow-card p-4 md:p-6 border border-gray-100">
+                <div className="bg-white/90 backdrop-blur rounded-xl shadow-xl p-4 md:p-6 border border-gray-100 transition-all duration-300 hover:shadow-2xl">
                   <h2 className="text-xl font-semibold mb-6 text-gray-900">Workflow Tasks</h2>
                   <div className="space-y-4">
                     {tasks.map((task) => (
@@ -1144,7 +1148,7 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
             {activeTab === 'insights' && (
               <div className="space-y-6">
                 {/* AI Suggestions */}
-                <div className="bg-white rounded-xl shadow-card p-4 md:p-6 border border-gray-100">
+                <div className="bg-white/90 backdrop-blur rounded-xl shadow-xl p-4 md:p-6 border border-gray-100 transition-all duration-300 hover:shadow-2xl">
                   <h2 className="text-xl font-semibold mb-4 text-gray-900">Smart Suggestions</h2>
                   <ul className="space-y-4">
                     {aiSuggestions.length > 0 ? aiSuggestions.map((suggestion, index) => (
@@ -1163,12 +1167,12 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
                 </div>
 
                 {/* Optimization Recommendations */}
-                <div className="bg-white rounded-xl shadow-card p-4 md:p-6 border border-gray-100">
+                <div className="bg-white/90 backdrop-blur rounded-xl shadow-xl p-4 md:p-6 border border-gray-100 transition-all duration-300 hover:shadow-2xl">
                   <OptimizationRecommendations />
                 </div>
 
                 {/* Chat Interface */}
-                <div className="bg-white rounded-xl shadow-card p-4 md:p-6 border border-gray-100">
+                <div className="bg-white/90 backdrop-blur rounded-xl shadow-xl p-4 md:p-6 border border-gray-100 transition-all duration-300 hover:shadow-2xl">
                   <h2 className="text-xl font-semibold mb-4 text-gray-900">Financial Assistant</h2>
                   <ChatBox isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
                 </div>

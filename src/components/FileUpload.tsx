@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import AuthModal from './auth/AuthModal';
 import PaywallModal from './payment/PaywallModal';
 import { trackEvent } from '../utils/analytics';
+import { logActivity } from './RecentActivityFeed';
 import { parseDate, normalizeAmount, suggestCategory } from '../utils/financialUtils';
 
 // Set the worker source for PDF.js
@@ -415,6 +416,7 @@ const FileUpload: React.FC = () => {
       if (allData.length > 0) {
         setPreviewData(allData);
         setFinancialData(allData);
+        logActivity('upload', `Uploaded ${acceptedFiles.length} file${acceptedFiles.length > 1 ? 's' : ''}: ${acceptedFiles.map(f => f.name).join(', ')}`);
         uploadCompletedRef.current = true;
         
         await updateUploadLimits({

@@ -36,7 +36,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       <aside 
         className={`
           fixed md:sticky top-0 inset-y-0 left-0 z-20
-          transform md:transform-none transition-all duration-300 ease-in-out
+          transform md:transform-none sidebar-transition
           ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
           p-3 sm:p-4 bg-gray-900 text-white 
           h-[100dvh] w-[85vw] sm:w-64 md:w-72 lg:w-80
@@ -202,7 +202,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       {/* Overlay */}
       {isMobileMenuOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-0 md:hidden transition-opacity duration-300"
+          className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden overlay-fade"
           onClick={toggleMobileMenu}
         />
       )}
