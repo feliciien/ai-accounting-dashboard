@@ -15,6 +15,7 @@ import { SEO } from './components/SEO';
 import ApiErrorBoundary from './components/common/ApiErrorBoundary';
 import ConversionOptimizer from './components/ConversionOptimizer';
 import DarkModeToggle from './components/DarkModeToggle';
+import NotificationBell from './components/NotificationBell';
 import './App.css';
 
 // Lazy load components
@@ -219,10 +220,6 @@ function App() {
   
   return (
     <div className="App h-screen flex flex-col overflow-hidden">
-      {/* Dark mode toggle floating in the top-right corner */}
-      <div className="fixed top-4 right-4 z-50">
-        <DarkModeToggle />
-      </div>
       <div className="flex-1 overflow-y-auto ios-scroll momentum-scroll">
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900 dark:text-gray-100">
           <AuthProvider>
@@ -232,6 +229,11 @@ function App() {
                   <FinancialProvider>
                     <IntegrationProvider>
                       <Router>
+                        {/* Dark mode toggle and notification bell floating in the top-right corner, now inside providers */}
+                        <div className="fixed top-4 right-4 z-50 flex items-center space-x-4">
+                          <NotificationBell />
+                          <DarkModeToggle />
+                        </div>
                         <ApiErrorBoundary>
                           <RouteWrapper />
                         </ApiErrorBoundary>
