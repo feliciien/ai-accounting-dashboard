@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getFirebaseAdminAuth } from '../../../utils/firebaseAdmin';
+import { getFirebaseAdminAuth } from '../../../src/utils/firebaseAdmin';
 import { getFirestore } from 'firebase-admin/firestore';
 import { FirebaseError } from 'firebase-admin/app';
 
