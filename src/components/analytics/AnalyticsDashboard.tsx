@@ -250,4 +250,4 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ timeRange = 'we
   );
 };
 
-export default AnalyticsDashboard;
+export default React.memo(AnalyticsDashboard);

@@ -1208,4 +1208,4 @@ const getTaskStatusColor = (status: WorkflowTask['status']) => {
   );
 };
 
-export default Dashboard;
+export default React.memo(Dashboard);
