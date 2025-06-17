@@ -14,17 +14,33 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ timeRange = 'we
   const [analyticsData, setAnalyticsData] = useState<AnalyticsDashboardData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  
+
+  // In-memory cache for analytics data: key = `${userId}_${timeRange}`
+  const analyticsCache = React.useRef<Map<string, AnalyticsDashboardData>>(new Map());
+  // Debounce timer ref
+  const debounceTimer = React.useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
+    if (!currentUser) return;
+
+    const cacheKey = `${currentUser.uid}_${timeRange}`;
+
     const fetchAnalyticsData = async () => {
       try {
         setLoading(true);
         setError(null);
-        
+
+        // Check cache first
+        if (analyticsCache.current.has(cacheKey)) {
+          setAnalyticsData(analyticsCache.current.get(cacheKey)!);
+          setLoading(false);
+          return;
+        }
+
         // Calculate date range based on timeRange
         const endDate = new Date();
         const startDate = new Date();
-        
+
         switch (timeRange) {
           case 'day':
             startDate.setDate(startDate.getDate() - 1);
@@ -39,13 +55,14 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ timeRange = 'we
             startDate.setFullYear(startDate.getFullYear() - 1);
             break;
         }
-        
+
         const data = await enhancedAnalytics.getAnalyticsDashboardData({
           startDate,
           endDate,
           userId: currentUser?.uid
         });
-        
+
+        analyticsCache.current.set(cacheKey, data);
         setAnalyticsData(data);
       } catch (err) {
         console.error('Error fetching analytics data:', err);
@@ -54,8 +71,19 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ timeRange = 'we
         setLoading(false);
       }
     };
-    
-    fetchAnalyticsData();
+
+    // Debounce API call
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    debounceTimer.current = setTimeout(fetchAnalyticsData, 400);
+
+    // Cleanup on unmount or change
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+    };
   }, [timeRange, currentUser]);
   
   // Convert event counts to chart data
