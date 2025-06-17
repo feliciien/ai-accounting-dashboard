@@ -16,6 +16,8 @@ import ApiErrorBoundary from './components/common/ApiErrorBoundary';
 import ConversionOptimizer from './components/ConversionOptimizer';
 import DarkModeToggle from './components/DarkModeToggle';
 import NotificationBell from './components/NotificationBell';
+import Toast from './components/Toast';
+import { useNotification } from './context/NotificationContext';
 import './App.css';
 
 // Lazy load components
@@ -153,6 +155,8 @@ const RouteWrapper = () => {
 function App() {
   const [firebaseInitialized, setFirebaseInitialized] = useState(false);
   const [initializationError, setInitializationError] = useState<string | null>(null);
+  // Toast state from NotificationContext
+  const { toast, hideToast } = useNotification();
   
   // Initialize Firebase with better error handling
   useEffect(() => {
@@ -220,6 +224,14 @@ function App() {
   
   return (
     <div className="App h-screen flex flex-col overflow-hidden">
+      {/* Global Toast */}
+      <Toast
+        message={toast?.message || ''}
+        type={toast?.type}
+        visible={!!toast?.visible}
+        onClose={hideToast}
+        duration={toast?.duration}
+      />
       <div className="flex-1 overflow-y-auto ios-scroll momentum-scroll">
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900 dark:text-gray-100">
           <AuthProvider>

@@ -12,6 +12,13 @@ interface Notification {
   duration?: number;
 }
 
+interface ToastState {
+  message: string;
+  type: NotificationType;
+  visible: boolean;
+  duration?: number;
+}
+
 interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
@@ -20,6 +27,9 @@ interface NotificationContextType {
   markAllAsRead: () => void;
   clearNotifications: () => void;
   showNotification: (notification: Notification) => void;
+  toast: ToastState | null;
+  showToast: (type: NotificationType, message: string, duration?: number) => void;
+  hideToast: () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | null>(null);
@@ -34,6 +44,7 @@ export const useNotification = () => {
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [toast, setToast] = useState<ToastState | null>(null);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -83,6 +94,28 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }, newNotification.duration);
   };
 
+  // Toast methods
+  const showToast = useCallback(
+    (type: NotificationType, message: string, duration: number = 3500) => {
+      setToast({ type, message, visible: true, duration });
+    },
+    []
+  );
+
+  const hideToast = useCallback(() => {
+    setToast((prev) => (prev ? { ...prev, visible: false } : null));
+  }, []);
+
+  // Auto-hide toast after duration
+  React.useEffect(() => {
+    if (toast && toast.visible) {
+      const timer = setTimeout(() => {
+        setToast((prev) => (prev ? { ...prev, visible: false } : null));
+      }, toast.duration || 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
   const value = {
     notifications,
     unreadCount,
@@ -91,6 +124,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     markAllAsRead,
     clearNotifications,
     showNotification,
+    toast,
+    showToast,
+    hideToast,
   };
 
   return (

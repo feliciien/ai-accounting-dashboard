@@ -5,6 +5,7 @@ import './index.css';
 // Import the Firestore fix before any other Firebase imports
 import './lib/applyFirestoreFix';
 import App from './App';
+import { NotificationProvider } from './context/NotificationContext';
 import reportWebVitals from './reportWebVitals';
 import { Analytics } from '@vercel/analytics/react';
 import { trackEvent } from './utils/analytics';
@@ -40,7 +41,9 @@ root.render(
     <React.Suspense fallback={null}>
       <ErrorBoundary>
         <Analytics />
-        <App />
+        <NotificationProvider>
+          <App />
+        </NotificationProvider>
       </ErrorBoundary>
     </React.Suspense>
   </React.StrictMode>
